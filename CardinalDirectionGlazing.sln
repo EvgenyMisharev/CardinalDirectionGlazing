@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.32002.261
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CardinalDirectionGlazing", "CardinalDirectionGlazing\CardinalDirectionGlazing.csproj", "{6BA11E49-AF4E-4C12-AFE8-C2D95E4979BF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		R2019|Any CPU = R2019|Any CPU
+		R2020|Any CPU = R2020|Any CPU
+		R2021|Any CPU = R2021|Any CPU
+		R2022|Any CPU = R2022|Any CPU
+		R2023|Any CPU = R2023|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6BA11E49-AF4E-4C12-AFE8-C2D95E4979BF}.R2019|Any CPU.ActiveCfg = R2019|Any CPU
+		{6BA11E49-AF4E-4C12-AFE8-C2D95E4979BF}.R2019|Any CPU.Build.0 = R2019|Any CPU
+		{6BA11E49-AF4E-4C12-AFE8-C2D95E4979BF}.R2020|Any CPU.ActiveCfg = R2020|Any CPU
+		{6BA11E49-AF4E-4C12-AFE8-C2D95E4979BF}.R2020|Any CPU.Build.0 = R2020|Any CPU
+		{6BA11E49-AF4E-4C12-AFE8-C2D95E4979BF}.R2021|Any CPU.ActiveCfg = R2021|Any CPU
+		{6BA11E49-AF4E-4C12-AFE8-C2D95E4979BF}.R2021|Any CPU.Build.0 = R2021|Any CPU
+		{6BA11E49-AF4E-4C12-AFE8-C2D95E4979BF}.R2022|Any CPU.ActiveCfg = R2022|Any CPU
+		{6BA11E49-AF4E-4C12-AFE8-C2D95E4979BF}.R2022|Any CPU.Build.0 = R2022|Any CPU
+		{6BA11E49-AF4E-4C12-AFE8-C2D95E4979BF}.R2023|Any CPU.ActiveCfg = R2023|Any CPU
+		{6BA11E49-AF4E-4C12-AFE8-C2D95E4979BF}.R2023|Any CPU.Build.0 = R2023|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {267DD017-E1A5-46D1-9D56-A7168C9567B1}
+	EndGlobalSection
+EndGlobal
