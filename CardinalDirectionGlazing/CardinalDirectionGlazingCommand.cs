@@ -5,8 +5,6 @@ using Autodesk.Revit.UI.Selection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CardinalDirectionGlazing
 {
@@ -19,30 +17,17 @@ namespace CardinalDirectionGlazing
             Selection sel = commandData.Application.ActiveUIDocument.Selection;
             Document linkDoc = null;
 
+            Guid windowsAreaNorthGuid = new Guid("820af414-f6ec-472d-887c-a2046a0c5988");
+            Guid windowsAreaSouthGuid = new Guid("81ab8e02-45c6-4d26-b0e5-a6736b0c352d");
 
-            //Выбор связанного файла
-            RevitLinkInstanceSelectionFilter selFilterRevitLinkInstance = new RevitLinkInstanceSelectionFilter();
-            Reference selRevitLinkInstance = null;
-            try
-            {
-                selRevitLinkInstance = sel.PickObject(ObjectType.Element, selFilterRevitLinkInstance, "Выберите связанный файл!");
-            }
-            catch (Autodesk.Revit.Exceptions.OperationCanceledException)
-            {
-                return Result.Cancelled;
-            }
+            Guid windowsAreaWestGuid = new Guid("65fe3416-f836-48ff-bed9-3fdf2126a1f9");
+            Guid windowsAreaEastGuid = new Guid("fc33c487-9bbb-43d6-a7f4-aba5f9638fe3");
 
-            IEnumerable<RevitLinkInstance> revitLinkInstance = new FilteredElementCollector(doc)
-                .OfClass(typeof(RevitLinkInstance))
-                .Where(li => li.Id == selRevitLinkInstance.ElementId)
-                .Cast<RevitLinkInstance>();
-            if (revitLinkInstance.Count() == 0)
-            {
-                TaskDialog.Show("Ravit", "Связанный файл не найден!");
-                return Result.Cancelled;
-            }
-            linkDoc = revitLinkInstance.First().GetLinkDocument();
-            Transform transform = revitLinkInstance.First().GetTotalTransform();
+            Guid windowsAreaNorthwestGuid = new Guid("f78f8a53-cea7-4e00-955c-3748aa7a37c7");
+            Guid windowsAreaNortheastGuid = new Guid("b8120c53-0793-4932-bc71-845302914573");
+
+            Guid windowsAreaSouthwestGuid = new Guid("3ff1f178-2cff-4b54-a0d3-eee58fa1622c");
+            Guid windowsAreaSoutheastGuid = new Guid("c5e261ae-68f5-4a91-a55f-8686d278f5ab");
 
             List<Space> spaceList = new FilteredElementCollector(doc)
                 .OfCategory(BuiltInCategory.OST_MEPSpaces)
@@ -51,10 +36,98 @@ namespace CardinalDirectionGlazing
                 .Where(s => s.Area > 0)
                 .ToList();
 
+            //Проверка наличия параметров
+            if(spaceList.Count != 0)
+            {
+                Parameter windowsAreaNorthParameter = spaceList.First().get_Parameter(windowsAreaNorthGuid);
+                if(windowsAreaNorthParameter == null)
+                {
+                    TaskDialog.Show("Revit", "Параметр пространства \"ПлощадьОкон_С\" не найден! Добавьте параметр в соответствии с инструкцией!");
+                    return Result.Cancelled;
+                }
+
+                Parameter windowsAreaSouthParameter = spaceList.First().get_Parameter(windowsAreaSouthGuid);
+                if (windowsAreaSouthParameter == null)
+                {
+                    TaskDialog.Show("Revit", "Параметр пространства \"ПлощадьОкон_Ю\" не найден! Добавьте параметр в соответствии с инструкцией!");
+                    return Result.Cancelled;
+                }
+
+                Parameter windowsAreaWestParameter = spaceList.First().get_Parameter(windowsAreaWestGuid);
+                if (windowsAreaWestParameter == null)
+                {
+                    TaskDialog.Show("Revit", "Параметр пространства \"ПлощадьОкон_З\" не найден! Добавьте параметр в соответствии с инструкцией!");
+                    return Result.Cancelled;
+                }
+
+                Parameter windowsAreaEastParameter = spaceList.First().get_Parameter(windowsAreaEastGuid);
+                if (windowsAreaEastParameter == null)
+                {
+                    TaskDialog.Show("Revit", "Параметр пространства \"ПлощадьОкон_В\" не найден! Добавьте параметр в соответствии с инструкцией!");
+                    return Result.Cancelled;
+                }
+
+                Parameter windowsAreaNorthwestParameter = spaceList.First().get_Parameter(windowsAreaNorthwestGuid);
+                if (windowsAreaNorthwestParameter == null)
+                {
+                    TaskDialog.Show("Revit", "Параметр пространства \"ПлощадьОкон_СЗ\" не найден! Добавьте параметр в соответствии с инструкцией!");
+                    return Result.Cancelled;
+                }
+
+                Parameter windowsAreaNortheastParameter = spaceList.First().get_Parameter(windowsAreaNortheastGuid);
+                if (windowsAreaNortheastParameter == null)
+                {
+                    TaskDialog.Show("Revit", "Параметр пространства \"ПлощадьОкон_СВ\" не найден! Добавьте параметр в соответствии с инструкцией!");
+                    return Result.Cancelled;
+                }
+
+                Parameter windowsAreaSouthwestParameter = spaceList.First().get_Parameter(windowsAreaSouthwestGuid);
+                if (windowsAreaSouthwestParameter == null)
+                {
+                    TaskDialog.Show("Revit", "Параметр пространства \"ПлощадьОкон_ЮЗ\" не найден! Добавьте параметр в соответствии с инструкцией!");
+                    return Result.Cancelled;
+                }
+
+                Parameter windowsAreaSoutheastParameter = spaceList.First().get_Parameter(windowsAreaSoutheastGuid);
+                if (windowsAreaSoutheastParameter == null)
+                {
+                    TaskDialog.Show("Revit", "Параметр пространства \"ПлощадьОкон_ЮВ\" не найден! Добавьте параметр в соответствии с инструкцией!");
+                    return Result.Cancelled;
+                }
+            }
+
+            List<RevitLinkInstance> revitLinkInstanceList = new FilteredElementCollector(doc)
+                .OfClass(typeof(RevitLinkInstance))
+                .Cast<RevitLinkInstance>()
+                .ToList();
+            if(revitLinkInstanceList.Count == 0)
+            {
+                TaskDialog.Show("Ravit", "В проекте отсутствуют связанные файлы!");
+                return Result.Cancelled;
+            }
+
+            CardinalDirectionGlazingWPF cardinalDirectionGlazingWPF = new CardinalDirectionGlazingWPF(revitLinkInstanceList);
+            cardinalDirectionGlazingWPF.ShowDialog();
+            if (cardinalDirectionGlazingWPF.DialogResult != true)
+            {
+                return Result.Cancelled;
+            }
+
+            if (cardinalDirectionGlazingWPF.SelectedRevitLinkInstance == null)
+            {
+                TaskDialog.Show("Ravit", "Связанный файл не выбран!");
+                return Result.Cancelled;
+            }
+            linkDoc = cardinalDirectionGlazingWPF.SelectedRevitLinkInstance.GetLinkDocument();
+            Transform transform = cardinalDirectionGlazingWPF.SelectedRevitLinkInstance.GetTotalTransform();
+            ProjectPosition position = linkDoc.ActiveProjectLocation.GetProjectPosition(XYZ.Zero);
+            Transform trueNorthTransform = Transform.CreateRotationAtPoint(XYZ.BasisZ, -position.Angle, XYZ.Zero);
+            XYZ trueNorthBasisY = trueNorthTransform.OfVector(XYZ.BasisY);
+            XYZ trueNorthBasisX = trueNorthTransform.OfVector(XYZ.BasisX);
 
             using (Transaction t = new Transaction(doc))
             {
-                t.Start("Север помнит");
+                t.Start("Остекление по сторонам света");
                 foreach (Space space in spaceList)
                 {
                     double windowsAreaNorth = 0;
@@ -151,37 +224,37 @@ namespace CardinalDirectionGlazing
                                 double windowArea = maxHeight * maxWidth;
 
                                 XYZ lineDirection = (lineA as Line).Direction;
-                                if(lineDirection.AngleTo(XYZ.BasisY) <= Math.PI / 8)
+                                if(lineDirection.AngleTo(trueNorthBasisY) <= Math.PI / 8)
                                 {
                                     windowsAreaNorth += windowArea;
                                 }
-                                else if (lineDirection.AngleTo(XYZ.BasisY.Negate()) <= Math.PI / 8)
+                                else if (lineDirection.AngleTo(trueNorthBasisY.Negate()) <= Math.PI / 8)
                                 {
                                     windowsAreaSouth += windowArea;
                                 }
-                                else if (lineDirection.AngleTo(XYZ.BasisX.Negate()) <= Math.PI / 8)
+                                else if (lineDirection.AngleTo(trueNorthBasisX.Negate()) <= Math.PI / 8)
                                 {
                                     windowsAreaWest += windowArea;
                                 }
-                                else if (lineDirection.AngleTo(XYZ.BasisX) <= Math.PI / 8)
+                                else if (lineDirection.AngleTo(trueNorthBasisX) <= Math.PI / 8)
                                 {
                                     windowsAreaEast += windowArea;
                                 }
 
-                                else if (lineDirection.AngleTo((XYZ.BasisY + XYZ.BasisX.Negate())/2) < Math.PI / 8)
+                                else if (lineDirection.AngleTo((trueNorthBasisY + trueNorthBasisX.Negate())/2) < Math.PI / 8)
                                 {
                                     windowsAreaNorthwest += windowArea;
                                 }
-                                else if (lineDirection.AngleTo((XYZ.BasisY + XYZ.BasisX) / 2) < Math.PI / 8)
+                                else if (lineDirection.AngleTo((trueNorthBasisY + trueNorthBasisX) / 2) < Math.PI / 8)
                                 {
                                     windowsAreaNortheast += windowArea;
                                 }
 
-                                else if (lineDirection.AngleTo((XYZ.BasisY.Negate() + XYZ.BasisX.Negate()) / 2) < Math.PI / 8)
+                                else if (lineDirection.AngleTo((trueNorthBasisY.Negate() + trueNorthBasisX.Negate()) / 2) < Math.PI / 8)
                                 {
                                     windowsAreaSouthwest += windowArea;
                                 }
-                                else if (lineDirection.AngleTo((XYZ.BasisY.Negate() + XYZ.BasisX) / 2) < Math.PI / 8)
+                                else if (lineDirection.AngleTo((trueNorthBasisY.Negate() + trueNorthBasisX) / 2) < Math.PI / 8)
                                 {
                                     windowsAreaSoutheast += windowArea;
                                 }
@@ -228,37 +301,37 @@ namespace CardinalDirectionGlazing
                                             panelArea += curtainWallPanelsHeight * curtainWallPanelsWidth;
 
                                             XYZ lineDirection = (lineA as Line).Direction;
-                                            if (lineDirection.AngleTo(XYZ.BasisY) <= Math.PI / 8)
+                                            if (lineDirection.AngleTo(trueNorthBasisY) <= Math.PI / 8)
                                             {
                                                 windowsAreaNorth += panelArea;
                                             }
-                                            else if (lineDirection.AngleTo(XYZ.BasisY.Negate()) <= Math.PI / 8)
+                                            else if (lineDirection.AngleTo(trueNorthBasisY.Negate()) <= Math.PI / 8)
                                             {
                                                 windowsAreaSouth += panelArea;
                                             }
-                                            else if (lineDirection.AngleTo(XYZ.BasisX.Negate()) <= Math.PI / 8)
+                                            else if (lineDirection.AngleTo(trueNorthBasisX.Negate()) <= Math.PI / 8)
                                             {
                                                 windowsAreaWest += panelArea;
                                             }
-                                            else if (lineDirection.AngleTo(XYZ.BasisX) <= Math.PI / 8)
+                                            else if (lineDirection.AngleTo(trueNorthBasisX) <= Math.PI / 8)
                                             {
                                                 windowsAreaEast += panelArea;
                                             }
 
-                                            else if (lineDirection.AngleTo((XYZ.BasisY + XYZ.BasisX.Negate()) / 2) < Math.PI / 8)
+                                            else if (lineDirection.AngleTo((trueNorthBasisY + trueNorthBasisX.Negate()) / 2) < Math.PI / 8)
                                             {
                                                 windowsAreaNorthwest += panelArea;
                                             }
-                                            else if (lineDirection.AngleTo((XYZ.BasisY + XYZ.BasisX) / 2) < Math.PI / 8)
+                                            else if (lineDirection.AngleTo((trueNorthBasisY + trueNorthBasisX) / 2) < Math.PI / 8)
                                             {
                                                 windowsAreaNortheast += panelArea;
                                             }
 
-                                            else if (lineDirection.AngleTo((XYZ.BasisY.Negate() + XYZ.BasisX.Negate()) / 2) < Math.PI / 8)
+                                            else if (lineDirection.AngleTo((trueNorthBasisY.Negate() + trueNorthBasisX.Negate()) / 2) < Math.PI / 8)
                                             {
                                                 windowsAreaSouthwest += panelArea;
                                             }
-                                            else if (lineDirection.AngleTo((XYZ.BasisY.Negate() + XYZ.BasisX) / 2) < Math.PI / 8)
+                                            else if (lineDirection.AngleTo((trueNorthBasisY.Negate() + trueNorthBasisX) / 2) < Math.PI / 8)
                                             {
                                                 windowsAreaSoutheast += panelArea;
                                             }
@@ -280,37 +353,37 @@ namespace CardinalDirectionGlazing
                                     {
                                         XYZ lineDirection = (lineA as Line).Direction;
                                         panelArea = panel.get_Parameter(BuiltInParameter.HOST_AREA_COMPUTED).AsDouble();
-                                        if (lineDirection.AngleTo(XYZ.BasisY) <= Math.PI / 8)
+                                        if (lineDirection.AngleTo(trueNorthBasisY) <= Math.PI / 8)
                                         {
                                             windowsAreaNorth += panelArea;
                                         }
-                                        else if (lineDirection.AngleTo(XYZ.BasisY.Negate()) <= Math.PI / 8)
+                                        else if (lineDirection.AngleTo(trueNorthBasisY.Negate()) <= Math.PI / 8)
                                         {
                                             windowsAreaSouth += panelArea;
                                         }
-                                        else if (lineDirection.AngleTo(XYZ.BasisX.Negate()) <= Math.PI / 8)
+                                        else if (lineDirection.AngleTo(trueNorthBasisX.Negate()) <= Math.PI / 8)
                                         {
                                             windowsAreaWest += panelArea;
                                         }
-                                        else if (lineDirection.AngleTo(XYZ.BasisX) <= Math.PI / 8)
+                                        else if (lineDirection.AngleTo(trueNorthBasisX) <= Math.PI / 8)
                                         {
                                             windowsAreaEast += panelArea;
                                         }
 
-                                        else if (lineDirection.AngleTo((XYZ.BasisY + XYZ.BasisX.Negate()) / 2) < Math.PI / 8)
+                                        else if (lineDirection.AngleTo((trueNorthBasisY + trueNorthBasisX.Negate()) / 2) < Math.PI / 8)
                                         {
                                             windowsAreaNorthwest += panelArea;
                                         }
-                                        else if (lineDirection.AngleTo((XYZ.BasisY + XYZ.BasisX) / 2) < Math.PI / 8)
+                                        else if (lineDirection.AngleTo((trueNorthBasisY + trueNorthBasisX) / 2) < Math.PI / 8)
                                         {
                                             windowsAreaNortheast += panelArea;
                                         }
 
-                                        else if (lineDirection.AngleTo((XYZ.BasisY.Negate() + XYZ.BasisX.Negate()) / 2) < Math.PI / 8)
+                                        else if (lineDirection.AngleTo((trueNorthBasisY.Negate() + trueNorthBasisX.Negate()) / 2) < Math.PI / 8)
                                         {
                                             windowsAreaSouthwest += panelArea;
                                         }
-                                        else if (lineDirection.AngleTo((XYZ.BasisY.Negate() + XYZ.BasisX) / 2) < Math.PI / 8)
+                                        else if (lineDirection.AngleTo((trueNorthBasisY.Negate() + trueNorthBasisX) / 2) < Math.PI / 8)
                                         {
                                             windowsAreaSoutheast += panelArea;
                                         }
@@ -321,17 +394,17 @@ namespace CardinalDirectionGlazing
 
                     }
 
-                    space.LookupParameter("ПлощадьОкон_С").Set(windowsAreaNorth);
-                    space.LookupParameter("ПлощадьОкон_Ю").Set(windowsAreaSouth);
+                    space.get_Parameter(windowsAreaNorthGuid).Set(windowsAreaNorth);
+                    space.get_Parameter(windowsAreaSouthGuid).Set(windowsAreaSouth);
 
-                    space.LookupParameter("ПлощадьОкон_З").Set(windowsAreaWest);
-                    space.LookupParameter("ПлощадьОкон_В").Set(windowsAreaEast);
+                    space.get_Parameter(windowsAreaWestGuid).Set(windowsAreaWest);
+                    space.get_Parameter(windowsAreaEastGuid).Set(windowsAreaEast);
 
-                    space.LookupParameter("ПлощадьОкон_СЗ").Set(windowsAreaNorthwest);
-                    space.LookupParameter("ПлощадьОкон_СВ").Set(windowsAreaNortheast);
+                    space.get_Parameter(windowsAreaNorthwestGuid).Set(windowsAreaNorthwest);
+                    space.get_Parameter(windowsAreaNortheastGuid).Set(windowsAreaNortheast);
 
-                    space.LookupParameter("ПлощадьОкон_ЮЗ").Set(windowsAreaSouthwest);
-                    space.LookupParameter("ПлощадьОкон_ЮВ").Set(windowsAreaSoutheast);
+                    space.get_Parameter(windowsAreaSouthwestGuid).Set(windowsAreaSouthwest);
+                    space.get_Parameter(windowsAreaSoutheastGuid).Set(windowsAreaSoutheast);
                 }
                 t.Commit();
             }
