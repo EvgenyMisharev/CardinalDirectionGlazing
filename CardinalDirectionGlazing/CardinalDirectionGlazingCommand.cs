@@ -125,6 +125,21 @@ namespace CardinalDirectionGlazing
             XYZ trueNorthBasisY = trueNorthTransform.OfVector(XYZ.BasisY);
             XYZ trueNorthBasisX = trueNorthTransform.OfVector(XYZ.BasisX);
 
+            List<FamilyInstance> windowsList = new FilteredElementCollector(linkDoc)
+                .OfCategory(BuiltInCategory.OST_Windows)
+                .OfClass(typeof(FamilyInstance))
+                .WhereElementIsNotElementType()
+                .Cast<FamilyInstance>()
+                .ToList();
+
+            List<Wall> curtainWallsList = new FilteredElementCollector(linkDoc)
+                .OfCategory(BuiltInCategory.OST_Walls)
+                .OfClass(typeof(Wall))
+                .WhereElementIsNotElementType()
+                .Cast<Wall>()
+                .Where(w => w.CurtainGrid != null)
+                .ToList();
+
             using (Transaction t = new Transaction(doc))
             {
                 t.Start("Остекление по сторонам света");
@@ -153,32 +168,42 @@ namespace CardinalDirectionGlazing
                     }
                     if (spaceSolid != null)
                     {
-                        List<FamilyInstance> windowsOnSpaceLevelList = new FilteredElementCollector(linkDoc)
-                            .OfCategory(BuiltInCategory.OST_Windows)
-                            .OfClass(typeof(FamilyInstance))
-                            .WhereElementIsNotElementType()
-                            .Cast<FamilyInstance>()
-                            .ToList();
-
-                        List<Wall> curtainWallsList = new FilteredElementCollector(linkDoc)
-                            .OfCategory(BuiltInCategory.OST_Walls)
-                            .OfClass(typeof(Wall))
-                            .WhereElementIsNotElementType()
-                            .Cast<Wall>()
-                            .Where(w => w.CurtainGrid != null)
-                            .ToList();
-
-                        foreach (FamilyInstance window in windowsOnSpaceLevelList)
+                        foreach (FamilyInstance window in windowsList)
                         {
+                            bool flag = false;
                             BoundingBoxXYZ windowBoundingBox = window.get_BoundingBox(null);
                             if (windowBoundingBox == null) continue;
                             XYZ windowCenter = (windowBoundingBox.Max + windowBoundingBox.Min) / 2;
                             Curve lineA = Line.CreateBound(windowCenter, windowCenter + (700 / 304.8) * window.FacingOrientation.Normalize()) as Curve;
                             Curve lineB = Line.CreateBound(windowCenter, windowCenter + (700 / 304.8) * window.FacingOrientation.Normalize().Negate()) as Curve;
+                            Curve transformdlineA = lineA.CreateTransformed(transform) as Curve;
                             Curve transformdlineB = lineB.CreateTransformed(transform) as Curve;
                             SolidCurveIntersection intersection = spaceSolid.IntersectWithCurve(transformdlineB, intersectOptions);
                             if (intersection.SegmentCount > 0)
                             {
+                                foreach (Space secondSpace in spaceList)
+                                {
+                                    if (secondSpace.Id == space.Id) continue;
+
+                                    Solid secondSpaceSolid = null;
+
+                                    GeometryElement secondGeomRoomElement = secondSpace.get_Geometry(new Options());
+                                    foreach (GeometryObject secondGeomObj in secondGeomRoomElement)
+                                    {
+                                        secondSpaceSolid = secondGeomObj as Solid;
+                                        if (secondSpaceSolid != null) break;
+                                    }
+                                    if (secondSpaceSolid != null)
+                                    {
+                                        SolidCurveIntersection secondIntersection = secondSpaceSolid.IntersectWithCurve(transformdlineA, intersectOptions);
+                                        if (secondIntersection.SegmentCount > 0)
+                                        {
+                                            flag = true;
+                                        }
+                                    }
+                                }
+                                if (flag == true) continue;
+
                                 double roughHeight = 0;
                                 double roughWidth = 0;
                                 double caseworkHeight = 0;
@@ -276,16 +301,41 @@ namespace CardinalDirectionGlazing
                                     doorwindows = linkDoc.GetElement(panelId) as FamilyInstance;
                                     if (doorwindows != null)
                                     {
+                                        bool flag = false;
                                         BoundingBoxXYZ windowBoundingBox = doorwindows.get_BoundingBox(null);
                                         if (windowBoundingBox == null) continue;
                                         XYZ windowCenter = (windowBoundingBox.Max + windowBoundingBox.Min) / 2;
                                         Curve lineA = Line.CreateBound(windowCenter, windowCenter + (700 / 304.8) * doorwindows.FacingOrientation.Normalize()) as Curve;
                                         Curve lineB = Line.CreateBound(windowCenter, windowCenter + (700 / 304.8) * doorwindows.FacingOrientation.Normalize().Negate()) as Curve;
+                                        Curve transformdlineA = lineA.CreateTransformed(transform) as Curve;
                                         Curve transformdlineB = lineB.CreateTransformed(transform) as Curve;
 
                                         SolidCurveIntersection intersectionB = spaceSolid.IntersectWithCurve(transformdlineB, intersectOptions);
                                         if (intersectionB.SegmentCount > 0)
                                         {
+                                            foreach (Space secondSpace in spaceList)
+                                            {
+                                                if (secondSpace.Id == space.Id) continue;
+
+                                                Solid secondSpaceSolid = null;
+
+                                                GeometryElement secondGeomRoomElement = secondSpace.get_Geometry(new Options());
+                                                foreach (GeometryObject secondGeomObj in secondGeomRoomElement)
+                                                {
+                                                    secondSpaceSolid = secondGeomObj as Solid;
+                                                    if (secondSpaceSolid != null) break;
+                                                }
+                                                if (secondSpaceSolid != null)
+                                                {
+                                                    SolidCurveIntersection secondIntersection = secondSpaceSolid.IntersectWithCurve(transformdlineA, intersectOptions);
+                                                    if (secondIntersection.SegmentCount > 0)
+                                                    {
+                                                        flag = true;
+                                                    }
+                                                }
+                                            }
+                                            if (flag == true) continue;
+
                                             double curtainWallPanelsHeight = 0;
                                             double curtainWallPanelsWidth = 0;
 
@@ -341,16 +391,41 @@ namespace CardinalDirectionGlazing
 
                                 if (panel != null)
                                 {
+                                    bool flag = false;
                                     BoundingBoxXYZ panelBoundingBox = panel.get_BoundingBox(null);
                                     if (panelBoundingBox == null) continue;
                                     XYZ panelCenter = (panelBoundingBox.Max + panelBoundingBox.Min) / 2;
                                     Curve lineA = Line.CreateBound(panelCenter, panelCenter + (700 / 304.8) * panel.FacingOrientation.Normalize()) as Curve;
                                     Curve lineB = Line.CreateBound(panelCenter, panelCenter + (700 / 304.8) * panel.FacingOrientation.Normalize().Negate()) as Curve;
+                                    Curve transformdlineA = lineA.CreateTransformed(transform) as Curve;
                                     Curve transformdlineB = lineB.CreateTransformed(transform) as Curve;
                                     
                                     SolidCurveIntersection intersectionB = spaceSolid.IntersectWithCurve(transformdlineB, intersectOptions);
                                     if (intersectionB.SegmentCount > 0)
                                     {
+                                        foreach (Space secondSpace in spaceList)
+                                        {
+                                            if (secondSpace.Id == space.Id) continue;
+
+                                            Solid secondSpaceSolid = null;
+
+                                            GeometryElement secondGeomRoomElement = secondSpace.get_Geometry(new Options());
+                                            foreach (GeometryObject secondGeomObj in secondGeomRoomElement)
+                                            {
+                                                secondSpaceSolid = secondGeomObj as Solid;
+                                                if (secondSpaceSolid != null) break;
+                                            }
+                                            if (secondSpaceSolid != null)
+                                            {
+                                                SolidCurveIntersection secondIntersection = secondSpaceSolid.IntersectWithCurve(transformdlineA, intersectOptions);
+                                                if (secondIntersection.SegmentCount > 0)
+                                                {
+                                                    flag = true;
+                                                }
+                                            }
+                                        }
+                                        if (flag == true) continue;
+
                                         XYZ lineDirection = (lineA as Line).Direction;
                                         panelArea = panel.get_Parameter(BuiltInParameter.HOST_AREA_COMPUTED).AsDouble();
                                         if (lineDirection.AngleTo(trueNorthBasisY) <= Math.PI / 8)
