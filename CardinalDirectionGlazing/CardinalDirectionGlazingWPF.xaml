@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:CardinalDirectionGlazing"
              mc:Ignorable="d" 
              Title="Остекление по сторонам"
-             WindowStyle="ToolWindow" WindowStartupLocation="CenterScreen"
+             WindowStyle="SingleBorderWindow" ResizeMode="NoResize" Icon="Resources/citrus.ico" WindowStartupLocation="CenterScreen"
              Height="300" Width="400" MinHeight="300" MinWidth="400" MaxHeight="300" MaxWidth="400"
              KeyDown="Window_KeyDown">
     <Grid>
