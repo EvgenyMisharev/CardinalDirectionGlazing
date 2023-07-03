@@ -182,6 +182,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Include="SpaceSelectionFilter.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

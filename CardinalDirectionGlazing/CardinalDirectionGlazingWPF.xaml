@@ -10,8 +10,21 @@
              Height="300" Width="400" MinHeight="300" MinWidth="400" MaxHeight="300" MaxWidth="400"
              KeyDown="Window_KeyDown">
     <Grid>
-        <Label x:Name="label_RevitLinkInstance" Content="Выберите связанный файл:" Margin="10,5,0,0" Height="25" HorizontalAlignment="Left" VerticalAlignment="Top" Width="280" Grid.ColumnSpan="2"/>
-        <ListBox x:Name="listBox_RevitLinkInstance" Margin="10,30,10,0" SelectionMode="Single"  Height="190" VerticalAlignment="Top"/>
+        <StackPanel>
+            <Label x:Name="label_RevitLinkInstance" Content="Выберите связанный файл:" Margin="10,5,0,0" Height="25" HorizontalAlignment="Left" VerticalAlignment="Top" Width="280" Grid.ColumnSpan="2"/>
+            <ListBox x:Name="listBox_RevitLinkInstance" Margin="10,5,10,0" SelectionMode="Single"  Height="120" VerticalAlignment="Top"/>
+            <GroupBox x:Name="groupBox_SpacesForProcessing" Header="Обрабатывать пространства:" Height="50" Margin="10,5,10,0" Grid.Row="1" VerticalAlignment="Top" BorderBrush="#FFABADB3">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="175*"/>
+                        <ColumnDefinition Width="175*"/>
+                    </Grid.ColumnDefinitions>
+                    <RadioButton x:Name="radioButton_Selected" Content="Выбранные" HorizontalAlignment="Center" VerticalAlignment="Center" IsChecked="True" Height="25" Width="100" VerticalContentAlignment="Center" Grid.Column="0" />
+                    <RadioButton x:Name="radioButton_All" Content="Все" VerticalAlignment="Center" HorizontalAlignment="Center" Grid.Column="1" Width="60" Height="25" VerticalContentAlignment="Center" IsChecked="True"/>
+                </Grid>
+            </GroupBox>
+        </StackPanel>
+        
         
         <Button x:Name="btn_Ok" Content="Ок" HorizontalAlignment="Right" Margin="0,225,125,10" VerticalAlignment="Bottom" Width="100" Height="25" Click="btn_Ok_Click" Grid.Column="1" Grid.Row="1"/>
         <Button x:Name="btn_Cancel" Content="Отмена" HorizontalAlignment="Right" Margin="0,0,10,10" VerticalAlignment="Bottom" Width="100" Height="25" Click="btn_Cancel_Click" Grid.Column="1" Grid.Row="1"/>

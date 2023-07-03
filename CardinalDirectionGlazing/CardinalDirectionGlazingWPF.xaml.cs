@@ -1,6 +1,8 @@
 ﻿using Autodesk.Revit.DB;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace CardinalDirectionGlazing
@@ -8,6 +10,7 @@ namespace CardinalDirectionGlazing
     public partial class CardinalDirectionGlazingWPF : Window
     {
         public RevitLinkInstance SelectedRevitLinkInstance;
+        public string SpacesForProcessingButtonName;
         public CardinalDirectionGlazingWPF(List<RevitLinkInstance> revitLinkInstanceList)
         {
             InitializeComponent();
@@ -20,6 +23,10 @@ namespace CardinalDirectionGlazing
         private void btn_Ok_Click(object sender, RoutedEventArgs e)
         {
             SelectedRevitLinkInstance = listBox_RevitLinkInstance.SelectedItem as RevitLinkInstance;
+            SpacesForProcessingButtonName = (this.groupBox_SpacesForProcessing.Content as System.Windows.Controls.Grid)
+                .Children.OfType<RadioButton>()
+                .FirstOrDefault(rb => rb.IsChecked.Value == true)
+                .Name;
             this.DialogResult = true;
             this.Close();
         }
@@ -28,6 +35,10 @@ namespace CardinalDirectionGlazing
             if (e.Key == Key.Enter || e.Key == Key.Space)
             {
                 SelectedRevitLinkInstance = listBox_RevitLinkInstance.SelectedItem as RevitLinkInstance;
+                SpacesForProcessingButtonName = (this.groupBox_SpacesForProcessing.Content as System.Windows.Controls.Grid)
+                    .Children.OfType<RadioButton>()
+                    .FirstOrDefault(rb => rb.IsChecked.Value == true)
+                    .Name;
                 this.DialogResult = true;
                 this.Close();
             }

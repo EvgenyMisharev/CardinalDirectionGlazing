@@ -118,12 +118,34 @@ namespace CardinalDirectionGlazing
                 TaskDialog.Show("Ravit", "Связанный файл не выбран!");
                 return Result.Cancelled;
             }
+
             linkDoc = cardinalDirectionGlazingWPF.SelectedRevitLinkInstance.GetLinkDocument();
             Transform transform = cardinalDirectionGlazingWPF.SelectedRevitLinkInstance.GetTotalTransform();
             ProjectPosition position = linkDoc.ActiveProjectLocation.GetProjectPosition(XYZ.Zero);
             Transform trueNorthTransform = Transform.CreateRotationAtPoint(XYZ.BasisZ, -position.Angle, XYZ.Zero);
             XYZ trueNorthBasisY = trueNorthTransform.OfVector(XYZ.BasisY);
             XYZ trueNorthBasisX = trueNorthTransform.OfVector(XYZ.BasisX);
+
+            string spacesForProcessingButtonName = cardinalDirectionGlazingWPF.SpacesForProcessingButtonName;
+            if(spacesForProcessingButtonName == "radioButton_Selected")
+            {
+                spaceList = new List<Space>();
+                SpaceSelectionFilter spaceSelectionFilter = new SpaceSelectionFilter();
+                IList<Reference> selSpaces = null;
+                try
+                {
+                    selSpaces = sel.PickObjects(ObjectType.Element, spaceSelectionFilter, "Выберите пространства!");
+                }
+                catch (Autodesk.Revit.Exceptions.OperationCanceledException)
+                {
+                    return Result.Cancelled;
+                }
+
+                foreach (Reference roomRef in selSpaces)
+                {
+                    spaceList.Add(doc.GetElement(roomRef) as Space);
+                }
+            }
 
             List<FamilyInstance> windowsList = new FilteredElementCollector(linkDoc)
                 .OfCategory(BuiltInCategory.OST_Windows)
@@ -391,6 +413,13 @@ namespace CardinalDirectionGlazing
 
                                 if (panel != null)
                                 {
+                                    if (panel.Symbol.get_Parameter(BuiltInParameter.CURTAIN_WALL_PANELS_CONSTRUCTION_TYPE) != null)
+                                    {
+                                        if (panel.Symbol.get_Parameter(BuiltInParameter.CURTAIN_WALL_PANELS_CONSTRUCTION_TYPE).AsString() != "Остекление")
+                                        {
+                                            continue;
+                                        }
+                                    }
                                     bool flag = false;
                                     BoundingBoxXYZ panelBoundingBox = panel.get_BoundingBox(null);
                                     if (panelBoundingBox == null) continue;
