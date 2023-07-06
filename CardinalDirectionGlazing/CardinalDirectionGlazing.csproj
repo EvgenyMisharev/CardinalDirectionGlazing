@@ -173,6 +173,7 @@
   </Choose>
   <ItemGroup>
     <Compile Include="CardinalDirectionGlazingCommand.cs" />
+    <Compile Include="CardinalDirectionGlazingSettings.cs" />
     <Compile Include="CardinalDirectionGlazingWPF.xaml.cs">
       <DependentUpon>CardinalDirectionGlazingWPF.xaml</DependentUpon>
     </Compile>

@@ -132,18 +132,22 @@ namespace CardinalDirectionGlazing
                 spaceList = new List<Space>();
                 SpaceSelectionFilter spaceSelectionFilter = new SpaceSelectionFilter();
                 IList<Reference> selSpaces = null;
-                try
+                spaceList = GetSpacesFromCurrentSelection(doc, sel);
+                if (spaceList.Count == 0)
                 {
-                    selSpaces = sel.PickObjects(ObjectType.Element, spaceSelectionFilter, "Выберите пространства!");
-                }
-                catch (Autodesk.Revit.Exceptions.OperationCanceledException)
-                {
-                    return Result.Cancelled;
-                }
+                    try
+                    {
+                        selSpaces = sel.PickObjects(ObjectType.Element, spaceSelectionFilter, "Выберите пространства!");
+                    }
+                    catch (Autodesk.Revit.Exceptions.OperationCanceledException)
+                    {
+                        return Result.Cancelled;
+                    }
 
-                foreach (Reference roomRef in selSpaces)
-                {
-                    spaceList.Add(doc.GetElement(roomRef) as Space);
+                    foreach (Reference roomRef in selSpaces)
+                    {
+                        spaceList.Add(doc.GetElement(roomRef) as Space);
+                    }
                 }
             }
 
@@ -513,6 +517,21 @@ namespace CardinalDirectionGlazing
                 t.Commit();
             }
             return Result.Succeeded;
+        }
+        private static List<Space> GetSpacesFromCurrentSelection(Document doc, Selection sel)
+        {
+            ICollection<ElementId> selectedIds = sel.GetElementIds();
+            List<Space> tempSpacessList = new List<Space>();
+            foreach (ElementId roomId in selectedIds)
+            {
+                if (doc.GetElement(roomId) is Space
+                    && null != doc.GetElement(roomId).Category
+                    && doc.GetElement(roomId).Category.Id.IntegerValue.Equals((int)BuiltInCategory.OST_MEPSpaces))
+                {
+                    tempSpacessList.Add(doc.GetElement(roomId) as Space);
+                }
+            }
+            return tempSpacessList;
         }
     }
 }
