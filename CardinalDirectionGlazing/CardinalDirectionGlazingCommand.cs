@@ -4,7 +4,9 @@ using Autodesk.Revit.UI;
 using Autodesk.Revit.UI.Selection;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 
 namespace CardinalDirectionGlazing
 {
@@ -13,6 +15,12 @@ namespace CardinalDirectionGlazing
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
+            try
+            {
+                GetPluginStartInfo();
+            }
+            catch { }
+
             Document doc = commandData.Application.ActiveUIDocument.Document;
             Selection sel = commandData.Application.ActiveUIDocument.Selection;
             Document linkDoc = null;
@@ -37,10 +45,10 @@ namespace CardinalDirectionGlazing
                 .ToList();
 
             //Проверка наличия параметров
-            if(spaceList.Count != 0)
+            if (spaceList.Count != 0)
             {
                 Parameter windowsAreaNorthParameter = spaceList.First().get_Parameter(windowsAreaNorthGuid);
-                if(windowsAreaNorthParameter == null)
+                if (windowsAreaNorthParameter == null)
                 {
                     TaskDialog.Show("Revit", "Параметр пространства \"ПлощадьОкон_С\" не найден! Добавьте параметр в соответствии с инструкцией!");
                     return Result.Cancelled;
@@ -100,7 +108,7 @@ namespace CardinalDirectionGlazing
                 .OfClass(typeof(RevitLinkInstance))
                 .Cast<RevitLinkInstance>()
                 .ToList();
-            if(revitLinkInstanceList.Count == 0)
+            if (revitLinkInstanceList.Count == 0)
             {
                 TaskDialog.Show("Ravit", "В проекте отсутствуют связанные файлы!");
                 return Result.Cancelled;
@@ -127,7 +135,7 @@ namespace CardinalDirectionGlazing
             XYZ trueNorthBasisX = trueNorthTransform.OfVector(XYZ.BasisX);
 
             string spacesForProcessingButtonName = cardinalDirectionGlazingWPF.SpacesForProcessingButtonName;
-            if(spacesForProcessingButtonName == "radioButton_Selected")
+            if (spacesForProcessingButtonName == "radioButton_Selected")
             {
                 spaceList = new List<Space>();
                 SpaceSelectionFilter spaceSelectionFilter = new SpaceSelectionFilter();
@@ -275,7 +283,7 @@ namespace CardinalDirectionGlazing
                                 double windowArea = maxHeight * maxWidth;
 
                                 XYZ lineDirection = (lineA as Line).Direction;
-                                if(lineDirection.AngleTo(trueNorthBasisY) <= Math.PI / 8)
+                                if (lineDirection.AngleTo(trueNorthBasisY) <= Math.PI / 8)
                                 {
                                     windowsAreaNorth += windowArea;
                                 }
@@ -292,7 +300,7 @@ namespace CardinalDirectionGlazing
                                     windowsAreaEast += windowArea;
                                 }
 
-                                else if (lineDirection.AngleTo((trueNorthBasisY + trueNorthBasisX.Negate())/2) < Math.PI / 8)
+                                else if (lineDirection.AngleTo((trueNorthBasisY + trueNorthBasisX.Negate()) / 2) < Math.PI / 8)
                                 {
                                     windowsAreaNorthwest += windowArea;
                                 }
@@ -432,7 +440,7 @@ namespace CardinalDirectionGlazing
                                     Curve lineB = Line.CreateBound(panelCenter, panelCenter + (700 / 304.8) * panel.FacingOrientation.Normalize().Negate()) as Curve;
                                     Curve transformdlineA = lineA.CreateTransformed(transform) as Curve;
                                     Curve transformdlineB = lineB.CreateTransformed(transform) as Curve;
-                                    
+
                                     SolidCurveIntersection intersectionB = spaceSolid.IntersectWithCurve(transformdlineB, intersectOptions);
                                     if (intersectionB.SegmentCount > 0)
                                     {
@@ -532,6 +540,27 @@ namespace CardinalDirectionGlazing
                 }
             }
             return tempSpacessList;
+        }
+        private static void GetPluginStartInfo()
+        {
+            // Получаем сборку, в которой выполняется текущий код
+            Assembly thisAssembly = Assembly.GetExecutingAssembly();
+            string assemblyName = "CardinalDirectionGlazing";
+            string assemblyNameRus = "Остекление по сторонам";
+            string assemblyFolderPath = Path.GetDirectoryName(thisAssembly.Location);
+
+            int lastBackslashIndex = assemblyFolderPath.LastIndexOf("\\");
+            string dllPath = assemblyFolderPath.Substring(0, lastBackslashIndex + 1) + "PluginInfoCollector\\PluginInfoCollector.dll";
+
+            Assembly assembly = Assembly.LoadFrom(dllPath);
+            Type type = assembly.GetType("PluginInfoCollector.InfoCollector");
+            var constructor = type.GetConstructor(new Type[] { typeof(string), typeof(string) });
+
+            if (type != null)
+            {
+                // Создание экземпляра класса
+                object instance = Activator.CreateInstance(type, new object[] { assemblyName, assemblyNameRus });
+            }
         }
     }
 }

@@ -32,7 +32,7 @@ namespace CardinalDirectionGlazing
                     listBox_RevitLinkInstance.SelectedItem = listBox_RevitLinkInstance.Items[0];
                 }
 
-                if(CardinalDirectionGlazingSettingsItem.SpacesForProcessingButtonName == "radioButton_Selected")
+                if (CardinalDirectionGlazingSettingsItem.SpacesForProcessingButtonName == "radioButton_Selected")
                 {
                     radioButton_Selected.IsChecked = true;
                 }
@@ -79,7 +79,7 @@ namespace CardinalDirectionGlazing
             CardinalDirectionGlazingSettingsItem = new CardinalDirectionGlazingSettings();
 
             SelectedRevitLinkInstance = listBox_RevitLinkInstance.SelectedItem as RevitLinkInstance;
-            if(SelectedRevitLinkInstance != null)
+            if (SelectedRevitLinkInstance != null)
             {
                 CardinalDirectionGlazingSettingsItem.SelectedRevitLinkInstanceName = SelectedRevitLinkInstance.Name;
             }
