@@ -7,6 +7,8 @@ namespace CardinalDirectionGlazing
     {
         public string SelectedRevitLinkInstanceName { get; set; }
         public string SpacesForProcessingButtonName { get; set; }
+        public string SpacesOrRoomsForProcessingButtonName { get; set; }
+
         public static CardinalDirectionGlazingSettings GetSettings()
         {
             CardinalDirectionGlazingSettings cardinalDirectionGlazingSettings = null;

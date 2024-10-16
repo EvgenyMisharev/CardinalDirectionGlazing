@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 
 namespace CardinalDirectionGlazing
 {
@@ -17,103 +18,30 @@ namespace CardinalDirectionGlazing
         {
             try
             {
-                GetPluginStartInfo();
+                _ = GetPluginStartInfo();
             }
             catch { }
 
             Document doc = commandData.Application.ActiveUIDocument.Document;
             Selection sel = commandData.Application.ActiveUIDocument.Selection;
-            Document linkDoc = null;
 
+            // GUIDы параметров окон по сторонам света
             Guid windowsAreaNorthGuid = new Guid("820af414-f6ec-472d-887c-a2046a0c5988");
             Guid windowsAreaSouthGuid = new Guid("81ab8e02-45c6-4d26-b0e5-a6736b0c352d");
-
             Guid windowsAreaWestGuid = new Guid("65fe3416-f836-48ff-bed9-3fdf2126a1f9");
             Guid windowsAreaEastGuid = new Guid("fc33c487-9bbb-43d6-a7f4-aba5f9638fe3");
-
             Guid windowsAreaNorthwestGuid = new Guid("f78f8a53-cea7-4e00-955c-3748aa7a37c7");
             Guid windowsAreaNortheastGuid = new Guid("b8120c53-0793-4932-bc71-845302914573");
-
             Guid windowsAreaSouthwestGuid = new Guid("3ff1f178-2cff-4b54-a0d3-eee58fa1622c");
             Guid windowsAreaSoutheastGuid = new Guid("c5e261ae-68f5-4a91-a55f-8686d278f5ab");
 
-            List<Space> spaceList = new FilteredElementCollector(doc)
-                .OfCategory(BuiltInCategory.OST_MEPSpaces)
-                .WhereElementIsNotElementType()
-                .Cast<Space>()
-                .Where(s => s.Area > 0)
-                .ToList();
-
-            //Проверка наличия параметров
-            if (spaceList.Count != 0)
-            {
-                Parameter windowsAreaNorthParameter = spaceList.First().get_Parameter(windowsAreaNorthGuid);
-                if (windowsAreaNorthParameter == null)
-                {
-                    TaskDialog.Show("Revit", "Параметр пространства \"ПлощадьОкон_С\" не найден! Добавьте параметр в соответствии с инструкцией!");
-                    return Result.Cancelled;
-                }
-
-                Parameter windowsAreaSouthParameter = spaceList.First().get_Parameter(windowsAreaSouthGuid);
-                if (windowsAreaSouthParameter == null)
-                {
-                    TaskDialog.Show("Revit", "Параметр пространства \"ПлощадьОкон_Ю\" не найден! Добавьте параметр в соответствии с инструкцией!");
-                    return Result.Cancelled;
-                }
-
-                Parameter windowsAreaWestParameter = spaceList.First().get_Parameter(windowsAreaWestGuid);
-                if (windowsAreaWestParameter == null)
-                {
-                    TaskDialog.Show("Revit", "Параметр пространства \"ПлощадьОкон_З\" не найден! Добавьте параметр в соответствии с инструкцией!");
-                    return Result.Cancelled;
-                }
-
-                Parameter windowsAreaEastParameter = spaceList.First().get_Parameter(windowsAreaEastGuid);
-                if (windowsAreaEastParameter == null)
-                {
-                    TaskDialog.Show("Revit", "Параметр пространства \"ПлощадьОкон_В\" не найден! Добавьте параметр в соответствии с инструкцией!");
-                    return Result.Cancelled;
-                }
-
-                Parameter windowsAreaNorthwestParameter = spaceList.First().get_Parameter(windowsAreaNorthwestGuid);
-                if (windowsAreaNorthwestParameter == null)
-                {
-                    TaskDialog.Show("Revit", "Параметр пространства \"ПлощадьОкон_СЗ\" не найден! Добавьте параметр в соответствии с инструкцией!");
-                    return Result.Cancelled;
-                }
-
-                Parameter windowsAreaNortheastParameter = spaceList.First().get_Parameter(windowsAreaNortheastGuid);
-                if (windowsAreaNortheastParameter == null)
-                {
-                    TaskDialog.Show("Revit", "Параметр пространства \"ПлощадьОкон_СВ\" не найден! Добавьте параметр в соответствии с инструкцией!");
-                    return Result.Cancelled;
-                }
-
-                Parameter windowsAreaSouthwestParameter = spaceList.First().get_Parameter(windowsAreaSouthwestGuid);
-                if (windowsAreaSouthwestParameter == null)
-                {
-                    TaskDialog.Show("Revit", "Параметр пространства \"ПлощадьОкон_ЮЗ\" не найден! Добавьте параметр в соответствии с инструкцией!");
-                    return Result.Cancelled;
-                }
-
-                Parameter windowsAreaSoutheastParameter = spaceList.First().get_Parameter(windowsAreaSoutheastGuid);
-                if (windowsAreaSoutheastParameter == null)
-                {
-                    TaskDialog.Show("Revit", "Параметр пространства \"ПлощадьОкон_ЮВ\" не найден! Добавьте параметр в соответствии с инструкцией!");
-                    return Result.Cancelled;
-                }
-            }
-
+            // Получаем список связанных файлов
             List<RevitLinkInstance> revitLinkInstanceList = new FilteredElementCollector(doc)
                 .OfClass(typeof(RevitLinkInstance))
                 .Cast<RevitLinkInstance>()
                 .ToList();
-            if (revitLinkInstanceList.Count == 0)
-            {
-                TaskDialog.Show("Ravit", "В проекте отсутствуют связанные файлы!");
-                return Result.Cancelled;
-            }
 
+            // Открываем окно WPF для выбора опций
             CardinalDirectionGlazingWPF cardinalDirectionGlazingWPF = new CardinalDirectionGlazingWPF(revitLinkInstanceList);
             cardinalDirectionGlazingWPF.ShowDialog();
             if (cardinalDirectionGlazingWPF.DialogResult != true)
@@ -121,411 +49,448 @@ namespace CardinalDirectionGlazing
                 return Result.Cancelled;
             }
 
-            if (cardinalDirectionGlazingWPF.SelectedRevitLinkInstance == null)
+            // Проверка выбранного связанного файла
+            if (cardinalDirectionGlazingWPF.SpacesOrRoomsForProcessingButtonName == "radioButton_Spaces")
             {
-                TaskDialog.Show("Ravit", "Связанный файл не выбран!");
-                return Result.Cancelled;
+                // Если выбрана обработка пространств, связанный файл обязателен
+                if (cardinalDirectionGlazingWPF.SelectedRevitLinkInstance == null)
+                {
+                    TaskDialog.Show("Revit", "Связанный файл не выбран! Для обработки пространств необходим связанный файл.");
+                    return Result.Cancelled;
+                }
             }
 
-            linkDoc = cardinalDirectionGlazingWPF.SelectedRevitLinkInstance.GetLinkDocument();
-            Transform transform = cardinalDirectionGlazingWPF.SelectedRevitLinkInstance.GetTotalTransform();
-            ProjectPosition position = linkDoc.ActiveProjectLocation.GetProjectPosition(XYZ.Zero);
+
+            Document linkDoc = null;
+            Transform transform = null;
+
+            // Всегда берем истинный север из текущего документа
+            ProjectPosition position = doc.ActiveProjectLocation.GetProjectPosition(XYZ.Zero);
             Transform trueNorthTransform = Transform.CreateRotationAtPoint(XYZ.BasisZ, -position.Angle, XYZ.Zero);
             XYZ trueNorthBasisY = trueNorthTransform.OfVector(XYZ.BasisY);
             XYZ trueNorthBasisX = trueNorthTransform.OfVector(XYZ.BasisX);
 
-            string spacesForProcessingButtonName = cardinalDirectionGlazingWPF.SpacesForProcessingButtonName;
-            if (spacesForProcessingButtonName == "radioButton_Selected")
+            // Если выбран связанный файл, используем его для обработки, но истинный север берем из текущего документа
+            if (cardinalDirectionGlazingWPF.SelectedRevitLinkInstance != null)
             {
-                spaceList = new List<Space>();
-                SpaceSelectionFilter spaceSelectionFilter = new SpaceSelectionFilter();
-                IList<Reference> selSpaces = null;
-                spaceList = GetSpacesFromCurrentSelection(doc, sel);
-                if (spaceList.Count == 0)
-                {
-                    try
-                    {
-                        selSpaces = sel.PickObjects(ObjectType.Element, spaceSelectionFilter, "Выберите пространства!");
-                    }
-                    catch (Autodesk.Revit.Exceptions.OperationCanceledException)
-                    {
-                        return Result.Cancelled;
-                    }
+                linkDoc = cardinalDirectionGlazingWPF.SelectedRevitLinkInstance.GetLinkDocument();
+                transform = cardinalDirectionGlazingWPF.SelectedRevitLinkInstance.GetTotalTransform();
+            }
 
-                    foreach (Reference roomRef in selSpaces)
-                    {
-                        spaceList.Add(doc.GetElement(roomRef) as Space);
-                    }
+            // Выбираем обработку: пространства или помещения
+            List<Element> elementsList;
+            if (cardinalDirectionGlazingWPF.SpacesOrRoomsForProcessingButtonName == "radioButton_Spaces")
+            {
+                // Обрабатываем пространства
+                elementsList = new FilteredElementCollector(doc)
+                    .OfCategory(BuiltInCategory.OST_MEPSpaces)
+                    .WhereElementIsNotElementType()
+                    .ToList();
+            }
+            else
+            {
+                // Обрабатываем помещения
+                elementsList = new FilteredElementCollector(doc)
+                    .OfCategory(BuiltInCategory.OST_Rooms)
+                    .WhereElementIsNotElementType()
+                    .ToList();
+            }
+
+            if (elementsList.Count == 0)
+            {
+                TaskDialog.Show("Revit", "Не найдены пространства или помещения для обработки.");
+                return Result.Cancelled;
+            }
+
+            // Проверка наличия параметров в первом элементе
+            if (elementsList.Count != 0)
+            {
+                Parameter windowsAreaNorthParameter = elementsList.First().get_Parameter(windowsAreaNorthGuid);
+                if (windowsAreaNorthParameter == null)
+                {
+                    TaskDialog.Show("Revit", "Параметр \"ПлощадьОкон_С\" не найден! Добавьте параметр.");
+                    return Result.Cancelled;
                 }
             }
 
-            List<FamilyInstance> windowsList = new FilteredElementCollector(linkDoc)
-                .OfCategory(BuiltInCategory.OST_Windows)
-                .OfClass(typeof(FamilyInstance))
-                .WhereElementIsNotElementType()
-                .Cast<FamilyInstance>()
-                .ToList();
+            // Инициализируем списки для окон и стен с остеклением
+            List<FamilyInstance> windowsList = new List<FamilyInstance>();
+            List<Wall> curtainWallsList = new List<Wall>();
 
-            List<Wall> curtainWallsList = new FilteredElementCollector(linkDoc)
-                .OfCategory(BuiltInCategory.OST_Walls)
-                .OfClass(typeof(Wall))
-                .WhereElementIsNotElementType()
-                .Cast<Wall>()
-                .Where(w => w.CurtainGrid != null)
-                .ToList();
+            // Инициализируем списки для окон и стен из связанного документа
+            List<FamilyInstance> linkedWindowsList = new List<FamilyInstance>();
+            List<Wall> linkedCurtainWallsList = new List<Wall>();
 
+            if (cardinalDirectionGlazingWPF.SpacesOrRoomsForProcessingButtonName == "radioButton_Spaces")
+            {
+                // Если обрабатываем пространства, берем окна и стены только из связанного файла
+                if (linkDoc != null)
+                {
+                    linkedWindowsList = new FilteredElementCollector(linkDoc)
+                        .OfCategory(BuiltInCategory.OST_Windows)
+                        .OfClass(typeof(FamilyInstance))
+                        .WhereElementIsNotElementType()
+                        .Cast<FamilyInstance>()
+                        .Where(w => w.SuperComponent == null)
+                        .ToList();
+
+                    linkedCurtainWallsList = new FilteredElementCollector(linkDoc)
+                        .OfCategory(BuiltInCategory.OST_Walls)
+                        .OfClass(typeof(Wall))
+                        .WhereElementIsNotElementType()
+                        .Cast<Wall>()
+                        .Where(w => w.CurtainGrid != null)
+                        .ToList();
+                }
+                else
+                {
+                    TaskDialog.Show("Revit", "Связанный файл для обработки пространств не найден.");
+                    return Result.Cancelled;
+                }
+            }
+            else if (cardinalDirectionGlazingWPF.SpacesOrRoomsForProcessingButtonName == "radioButton_Rooms")
+            {
+                // Если обрабатываем помещения, берем окна и стены как из связанного файла, так и из текущего документа
+
+                // Окна и стены из текущего документа
+                windowsList = new FilteredElementCollector(doc)
+                    .OfCategory(BuiltInCategory.OST_Windows)
+                    .OfClass(typeof(FamilyInstance))
+                    .WhereElementIsNotElementType()
+                    .Cast<FamilyInstance>()
+                    .Where(w => w.SuperComponent == null)
+                    .ToList();
+
+                curtainWallsList = new FilteredElementCollector(doc)
+                    .OfCategory(BuiltInCategory.OST_Walls)
+                    .OfClass(typeof(Wall))
+                    .WhereElementIsNotElementType()
+                    .Cast<Wall>()
+                    .Where(w => w.CurtainGrid != null)
+                    .Where(w => w.WallType.get_Parameter(BuiltInParameter.ALL_MODEL_MODEL).AsString() == "Наружный витраж")
+                    .ToList();
+
+                // Если выбран связанный файл, добавляем окна и стены из связанного файла
+                if (linkDoc != null)
+                {
+                    linkedWindowsList = new FilteredElementCollector(linkDoc)
+                        .OfCategory(BuiltInCategory.OST_Windows)
+                        .OfClass(typeof(FamilyInstance))
+                        .WhereElementIsNotElementType()
+                        .Cast<FamilyInstance>()
+                        .Where(w => w.SuperComponent == null)
+                        .ToList();
+
+                    linkedCurtainWallsList = new FilteredElementCollector(linkDoc)
+                        .OfCategory(BuiltInCategory.OST_Walls)
+                        .OfClass(typeof(Wall))
+                        .WhereElementIsNotElementType()
+                        .Cast<Wall>()
+                        .Where(w => w.CurtainGrid != null)
+                        .Where(w => w.WallType.get_Parameter(BuiltInParameter.ALL_MODEL_MODEL).AsString() == "Наружный витраж")
+                        .ToList();
+                }
+            }
+
+            // Начинаем транзакцию для обновления данных в Revit
             using (Transaction t = new Transaction(doc))
             {
                 t.Start("Остекление по сторонам света");
-                foreach (Space space in spaceList)
+
+                foreach (Element element in elementsList)
                 {
                     double windowsAreaNorth = 0;
                     double windowsAreaSouth = 0;
-
                     double windowsAreaWest = 0;
                     double windowsAreaEast = 0;
-
                     double windowsAreaNorthwest = 0;
                     double windowsAreaNortheast = 0;
-
                     double windowsAreaSouthwest = 0;
                     double windowsAreaSoutheast = 0;
 
-                    Solid spaceSolid = null;
-                    SolidCurveIntersectionOptions intersectOptions = new SolidCurveIntersectionOptions();
+                    Solid elementSolid = GetSolidFromElement(element);
+                    if (elementSolid == null) continue;
 
-                    GeometryElement geomRoomElement = space.get_Geometry(new Options());
-                    foreach (GeometryObject geomObj in geomRoomElement)
+                    // Обработка окон из текущего документа (не используем трансформацию)
+                    foreach (FamilyInstance window in windowsList)
                     {
-                        spaceSolid = geomObj as Solid;
-                        if (spaceSolid != null) break;
-                    }
-                    if (spaceSolid != null)
-                    {
-                        foreach (FamilyInstance window in windowsList)
+                        double roughHeight = 0;
+                        double roughWidth = 0;
+                        double caseworkHeight = 0;
+                        double caseworkWidth = 0;
+                        double maxHeight = 0;
+                        double maxWidth = 0;
+
+                        // Получаем параметры ROUGH HEIGHT и ROUGH WIDTH
+                        if (window.Symbol.get_Parameter(BuiltInParameter.FAMILY_ROUGH_HEIGHT_PARAM) != null)
                         {
-                            bool flag = false;
-                            BoundingBoxXYZ windowBoundingBox = window.get_BoundingBox(null);
-                            if (windowBoundingBox == null) continue;
-                            XYZ windowCenter = (windowBoundingBox.Max + windowBoundingBox.Min) / 2;
-                            Curve lineA = Line.CreateBound(windowCenter, windowCenter + (700 / 304.8) * window.FacingOrientation.Normalize()) as Curve;
-                            Curve lineB = Line.CreateBound(windowCenter, windowCenter + (700 / 304.8) * window.FacingOrientation.Normalize().Negate()) as Curve;
-                            Curve transformdlineA = lineA.CreateTransformed(transform) as Curve;
-                            Curve transformdlineB = lineB.CreateTransformed(transform) as Curve;
-                            SolidCurveIntersection intersection = spaceSolid.IntersectWithCurve(transformdlineB, intersectOptions);
-                            if (intersection.SegmentCount > 0)
+                            roughHeight = window.Symbol.get_Parameter(BuiltInParameter.FAMILY_ROUGH_HEIGHT_PARAM).AsDouble();
+                        }
+                        if (window.Symbol.get_Parameter(BuiltInParameter.FAMILY_ROUGH_WIDTH_PARAM) != null)
+                        {
+                            roughWidth = window.Symbol.get_Parameter(BuiltInParameter.FAMILY_ROUGH_WIDTH_PARAM).AsDouble();
+                        }
+
+                        // Получаем параметры CASEWORK для высоты и ширины
+                        if (window.Symbol.get_Parameter(BuiltInParameter.CASEWORK_HEIGHT) != null)
+                        {
+                            caseworkHeight = window.Symbol.get_Parameter(BuiltInParameter.CASEWORK_HEIGHT).AsDouble();
+                        }
+                        if (window.Symbol.get_Parameter(BuiltInParameter.CASEWORK_WIDTH) != null)
+                        {
+                            caseworkWidth = window.Symbol.get_Parameter(BuiltInParameter.CASEWORK_WIDTH).AsDouble();
+                        }
+
+                        // Выбираем максимальные значения высоты и ширины
+                        maxHeight = Math.Max(roughHeight, caseworkHeight);
+                        maxWidth = Math.Max(roughWidth, caseworkWidth);
+
+                        double windowArea = maxHeight * maxWidth;
+
+                        BoundingBoxXYZ windowBoundingBox = window.get_BoundingBox(null);
+                        if (windowBoundingBox == null) continue;
+
+                        XYZ windowCenter = (windowBoundingBox.Max + windowBoundingBox.Min) / 2;
+                        Curve windowCurve = Line.CreateBound(windowCenter, windowCenter + window.FacingOrientation.Negate() * 700 / 304.8);
+
+                        SolidCurveIntersection intersection = elementSolid.IntersectWithCurve(windowCurve, new SolidCurveIntersectionOptions());
+                        if (intersection.SegmentCount > 0)
+                        {
+                            UpdateWindowAreas(ref windowsAreaNorth, ref windowsAreaSouth, ref windowsAreaWest, ref windowsAreaEast, ref windowsAreaNorthwest, ref windowsAreaNortheast, ref windowsAreaSouthwest, ref windowsAreaSoutheast, windowArea, window.FacingOrientation, trueNorthBasisX, trueNorthBasisY);
+                        }
+                    }
+
+                    // Обработка панелей витражей из текущего документа (не используем трансформацию)
+                    foreach (Wall wall in curtainWallsList)
+                    {
+                        foreach (ElementId panelId in wall.CurtainGrid.GetPanelIds())
+                        {
+                            Panel panel = doc.GetElement(panelId) as Panel;
+                            if (panel == null || !IsPanelGlazing(panel)) continue;
+
+                            BoundingBoxXYZ panelBoundingBox = panel.get_BoundingBox(null);
+                            if (panelBoundingBox == null) continue;
+
+                            XYZ panelCenter = (panelBoundingBox.Max + panelBoundingBox.Min) / 2;
+
+                            // Создаем две линии: одну в направлении FacingOrientation, другую в противоположном направлении
+                            Curve panelCurveForward = Line.CreateBound(panelCenter, panelCenter + panel.FacingOrientation * 700 / 304.8);
+                            Curve panelCurveBackward = Line.CreateBound(panelCenter, panelCenter + panel.FacingOrientation.Negate() * 700 / 304.8);
+
+                            SolidCurveIntersectionOptions intersectionOptions = new SolidCurveIntersectionOptions();
+
+                            // Проверяем пересечение в прямом направлении
+                            SolidCurveIntersection intersectionForward = elementSolid.IntersectWithCurve(panelCurveForward, intersectionOptions);
+                            bool intersected = false;
+
+                            if (intersectionForward.SegmentCount > 0)
                             {
-                                foreach (Space secondSpace in spaceList)
-                                {
-                                    if (secondSpace.Id == space.Id) continue;
+                                double panelArea = panel.get_Parameter(BuiltInParameter.HOST_AREA_COMPUTED).AsDouble();
+                                UpdateWindowAreas(ref windowsAreaNorth, ref windowsAreaSouth, ref windowsAreaWest, ref windowsAreaEast, ref windowsAreaNorthwest, ref windowsAreaNortheast, ref windowsAreaSouthwest, ref windowsAreaSoutheast, panelArea, panel.FacingOrientation.Negate(), trueNorthBasisX, trueNorthBasisY);
+                                intersected = true;
+                            }
 
-                                    Solid secondSpaceSolid = null;
-
-                                    GeometryElement secondGeomRoomElement = secondSpace.get_Geometry(new Options());
-                                    foreach (GeometryObject secondGeomObj in secondGeomRoomElement)
-                                    {
-                                        secondSpaceSolid = secondGeomObj as Solid;
-                                        if (secondSpaceSolid != null) break;
-                                    }
-                                    if (secondSpaceSolid != null)
-                                    {
-                                        SolidCurveIntersection secondIntersection = secondSpaceSolid.IntersectWithCurve(transformdlineA, intersectOptions);
-                                        if (secondIntersection.SegmentCount > 0)
-                                        {
-                                            flag = true;
-                                        }
-                                    }
-                                }
-                                if (flag == true) continue;
-
-                                double roughHeight = 0;
-                                double roughWidth = 0;
-                                double caseworkHeight = 0;
-                                double caseworkWidth = 0;
-                                double maxHeight = 0;
-                                double maxWidth = 0;
-
-                                if (window.Symbol.get_Parameter(BuiltInParameter.FAMILY_ROUGH_HEIGHT_PARAM) != null)
+                            // Проверяем пересечение в противоположном направлении, если не было пересечения в прямом
+                            if (!intersected)
+                            {
+                                SolidCurveIntersection intersectionBackward = elementSolid.IntersectWithCurve(panelCurveBackward, intersectionOptions);
+                                if (intersectionBackward.SegmentCount > 0)
                                 {
-                                    roughHeight = window.Symbol.get_Parameter(BuiltInParameter.FAMILY_ROUGH_HEIGHT_PARAM).AsDouble();
-                                }
-                                if (window.Symbol.get_Parameter(BuiltInParameter.FAMILY_ROUGH_WIDTH_PARAM) != null)
-                                {
-                                    roughWidth = window.Symbol.get_Parameter(BuiltInParameter.FAMILY_ROUGH_WIDTH_PARAM).AsDouble();
-                                }
-                                if (window.Symbol.get_Parameter(BuiltInParameter.CASEWORK_HEIGHT) != null)
-                                {
-                                    caseworkHeight = window.Symbol.get_Parameter(BuiltInParameter.CASEWORK_HEIGHT).AsDouble();
-                                }
-                                if (window.Symbol.get_Parameter(BuiltInParameter.CASEWORK_WIDTH) != null)
-                                {
-                                    caseworkWidth = window.Symbol.get_Parameter(BuiltInParameter.CASEWORK_WIDTH).AsDouble();
-                                }
-
-                                if (roughHeight >= caseworkHeight)
-                                {
-                                    maxHeight = roughHeight;
-                                }
-                                else
-                                {
-                                    maxHeight = caseworkHeight;
-                                }
-
-                                if (roughWidth >= caseworkWidth)
-                                {
-                                    maxWidth = roughWidth;
-                                }
-                                else
-                                {
-                                    maxWidth = caseworkWidth;
-                                }
-
-                                double windowArea = maxHeight * maxWidth;
-
-                                XYZ lineDirection = (lineA as Line).Direction;
-                                if (lineDirection.AngleTo(trueNorthBasisY) <= Math.PI / 8)
-                                {
-                                    windowsAreaNorth += windowArea;
-                                }
-                                else if (lineDirection.AngleTo(trueNorthBasisY.Negate()) <= Math.PI / 8)
-                                {
-                                    windowsAreaSouth += windowArea;
-                                }
-                                else if (lineDirection.AngleTo(trueNorthBasisX.Negate()) <= Math.PI / 8)
-                                {
-                                    windowsAreaWest += windowArea;
-                                }
-                                else if (lineDirection.AngleTo(trueNorthBasisX) <= Math.PI / 8)
-                                {
-                                    windowsAreaEast += windowArea;
-                                }
-
-                                else if (lineDirection.AngleTo((trueNorthBasisY + trueNorthBasisX.Negate()) / 2) < Math.PI / 8)
-                                {
-                                    windowsAreaNorthwest += windowArea;
-                                }
-                                else if (lineDirection.AngleTo((trueNorthBasisY + trueNorthBasisX) / 2) < Math.PI / 8)
-                                {
-                                    windowsAreaNortheast += windowArea;
-                                }
-
-                                else if (lineDirection.AngleTo((trueNorthBasisY.Negate() + trueNorthBasisX.Negate()) / 2) < Math.PI / 8)
-                                {
-                                    windowsAreaSouthwest += windowArea;
-                                }
-                                else if (lineDirection.AngleTo((trueNorthBasisY.Negate() + trueNorthBasisX) / 2) < Math.PI / 8)
-                                {
-                                    windowsAreaSoutheast += windowArea;
+                                    double panelArea = panel.get_Parameter(BuiltInParameter.HOST_AREA_COMPUTED).AsDouble();
+                                    UpdateWindowAreas(ref windowsAreaNorth, ref windowsAreaSouth, ref windowsAreaWest, ref windowsAreaEast, ref windowsAreaNorthwest, ref windowsAreaNortheast, ref windowsAreaSouthwest, ref windowsAreaSoutheast, panelArea, panel.FacingOrientation, trueNorthBasisX, trueNorthBasisY);
                                 }
                             }
                         }
+                    }
 
-                        foreach (Wall wall in curtainWallsList)
+                    // Обработка окон из связанного документа (используем transform)
+                    foreach (FamilyInstance window in linkedWindowsList)
+                    {
+                        double roughHeight = 0;
+                        double roughWidth = 0;
+                        double caseworkHeight = 0;
+                        double caseworkWidth = 0;
+                        double maxHeight = 0;
+                        double maxWidth = 0;
+
+                        // Получаем параметры ROUGH HEIGHT и ROUGH WIDTH
+                        if (window.Symbol.get_Parameter(BuiltInParameter.FAMILY_ROUGH_HEIGHT_PARAM) != null)
                         {
-                            List<ElementId> CurtainPanelsIdList = wall.CurtainGrid.GetPanelIds().ToList();
-                            foreach (ElementId panelId in CurtainPanelsIdList)
+                            roughHeight = window.Symbol.get_Parameter(BuiltInParameter.FAMILY_ROUGH_HEIGHT_PARAM).AsDouble();
+                        }
+                        if (window.Symbol.get_Parameter(BuiltInParameter.FAMILY_ROUGH_WIDTH_PARAM) != null)
+                        {
+                            roughWidth = window.Symbol.get_Parameter(BuiltInParameter.FAMILY_ROUGH_WIDTH_PARAM).AsDouble();
+                        }
+
+                        // Получаем параметры CASEWORK для высоты и ширины
+                        if (window.Symbol.get_Parameter(BuiltInParameter.CASEWORK_HEIGHT) != null)
+                        {
+                            caseworkHeight = window.Symbol.get_Parameter(BuiltInParameter.CASEWORK_HEIGHT).AsDouble();
+                        }
+                        if (window.Symbol.get_Parameter(BuiltInParameter.CASEWORK_WIDTH) != null)
+                        {
+                            caseworkWidth = window.Symbol.get_Parameter(BuiltInParameter.CASEWORK_WIDTH).AsDouble();
+                        }
+
+                        // Выбираем максимальные значения высоты и ширины
+                        maxHeight = Math.Max(roughHeight, caseworkHeight);
+                        maxWidth = Math.Max(roughWidth, caseworkWidth);
+
+                        double windowArea = maxHeight * maxWidth;
+
+                        BoundingBoxXYZ windowBoundingBox = window.get_BoundingBox(null);
+                        if (windowBoundingBox == null) continue;
+
+                        XYZ windowCenter = (windowBoundingBox.Max + windowBoundingBox.Min) / 2;
+                        windowCenter = transform.OfPoint(windowCenter); // Применяем трансформацию для окна из связанного файла
+                        Curve windowCurve = Line.CreateBound(windowCenter, windowCenter + transform.OfVector(window.FacingOrientation.Negate()) * 700 / 304.8);
+
+                        SolidCurveIntersection intersection = elementSolid.IntersectWithCurve(windowCurve, new SolidCurveIntersectionOptions());
+                        if (intersection.SegmentCount > 0)
+                        {
+                            UpdateWindowAreas(ref windowsAreaNorth, ref windowsAreaSouth, ref windowsAreaWest, ref windowsAreaEast, ref windowsAreaNorthwest, ref windowsAreaNortheast, ref windowsAreaSouthwest, ref windowsAreaSoutheast, windowArea, transform.OfVector(window.FacingOrientation), trueNorthBasisX, trueNorthBasisY);
+                        }
+                    }
+
+                    // Обработка панелей витражей из связанного документа (используем transform)
+                    foreach (Wall wall in linkedCurtainWallsList)
+                    {
+                        foreach (ElementId panelId in wall.CurtainGrid.GetPanelIds())
+                        {
+                            Panel panel = linkDoc.GetElement(panelId) as Panel;
+                            if (panel == null || !IsPanelGlazing(panel)) continue;
+
+                            BoundingBoxXYZ panelBoundingBox = panel.get_BoundingBox(null);
+                            if (panelBoundingBox == null) continue;
+
+                            XYZ panelCenter = (panelBoundingBox.Max + panelBoundingBox.Min) / 2;
+                            panelCenter = transform.OfPoint(panelCenter); // Применяем трансформацию для панели из связанного файла
+
+                            // Создаем две линии: одну в направлении FacingOrientation, другую в противоположном направлении
+                            Curve panelCurveForward = Line.CreateBound(panelCenter, panelCenter + transform.OfVector(panel.FacingOrientation) * 700 / 304.8);
+                            Curve panelCurveBackward = Line.CreateBound(panelCenter, panelCenter + transform.OfVector(panel.FacingOrientation.Negate()) * 700 / 304.8);
+
+                            SolidCurveIntersectionOptions intersectionOptions = new SolidCurveIntersectionOptions();
+
+                            // Проверяем пересечение в прямом направлении
+                            SolidCurveIntersection intersectionForward = elementSolid.IntersectWithCurve(panelCurveForward, intersectionOptions);
+                            bool intersected = false;
+
+                            if (intersectionForward.SegmentCount > 0)
                             {
-                                Panel panel = null;
-                                FamilyInstance doorwindows = null;
-                                panel = linkDoc.GetElement(panelId) as Panel;
-                                double panelArea = 0;
+                                double panelArea = panel.get_Parameter(BuiltInParameter.HOST_AREA_COMPUTED).AsDouble();
+                                UpdateWindowAreas(ref windowsAreaNorth, ref windowsAreaSouth, ref windowsAreaWest, ref windowsAreaEast, ref windowsAreaNorthwest, ref windowsAreaNortheast, ref windowsAreaSouthwest, ref windowsAreaSoutheast, panelArea, transform.OfVector(panel.FacingOrientation.Negate()), trueNorthBasisX, trueNorthBasisY);
+                                intersected = true;
+                            }
 
-                                if (panel == null)
+                            // Проверяем пересечение в противоположном направлении, если не было пересечения в прямом
+                            if (!intersected)
+                            {
+                                SolidCurveIntersection intersectionBackward = elementSolid.IntersectWithCurve(panelCurveBackward, intersectionOptions);
+                                if (intersectionBackward.SegmentCount > 0)
                                 {
-                                    doorwindows = linkDoc.GetElement(panelId) as FamilyInstance;
-                                    if (doorwindows != null)
-                                    {
-                                        bool flag = false;
-                                        BoundingBoxXYZ windowBoundingBox = doorwindows.get_BoundingBox(null);
-                                        if (windowBoundingBox == null) continue;
-                                        XYZ windowCenter = (windowBoundingBox.Max + windowBoundingBox.Min) / 2;
-                                        Curve lineA = Line.CreateBound(windowCenter, windowCenter + (700 / 304.8) * doorwindows.FacingOrientation.Normalize()) as Curve;
-                                        Curve lineB = Line.CreateBound(windowCenter, windowCenter + (700 / 304.8) * doorwindows.FacingOrientation.Normalize().Negate()) as Curve;
-                                        Curve transformdlineA = lineA.CreateTransformed(transform) as Curve;
-                                        Curve transformdlineB = lineB.CreateTransformed(transform) as Curve;
-
-                                        SolidCurveIntersection intersectionB = spaceSolid.IntersectWithCurve(transformdlineB, intersectOptions);
-                                        if (intersectionB.SegmentCount > 0)
-                                        {
-                                            foreach (Space secondSpace in spaceList)
-                                            {
-                                                if (secondSpace.Id == space.Id) continue;
-
-                                                Solid secondSpaceSolid = null;
-
-                                                GeometryElement secondGeomRoomElement = secondSpace.get_Geometry(new Options());
-                                                foreach (GeometryObject secondGeomObj in secondGeomRoomElement)
-                                                {
-                                                    secondSpaceSolid = secondGeomObj as Solid;
-                                                    if (secondSpaceSolid != null) break;
-                                                }
-                                                if (secondSpaceSolid != null)
-                                                {
-                                                    SolidCurveIntersection secondIntersection = secondSpaceSolid.IntersectWithCurve(transformdlineA, intersectOptions);
-                                                    if (secondIntersection.SegmentCount > 0)
-                                                    {
-                                                        flag = true;
-                                                    }
-                                                }
-                                            }
-                                            if (flag == true) continue;
-
-                                            double curtainWallPanelsHeight = 0;
-                                            double curtainWallPanelsWidth = 0;
-
-                                            if (doorwindows.get_Parameter(BuiltInParameter.CURTAIN_WALL_PANELS_HEIGHT) != null)
-                                            {
-                                                curtainWallPanelsHeight = doorwindows.get_Parameter(BuiltInParameter.CURTAIN_WALL_PANELS_HEIGHT).AsDouble();
-                                            }
-                                            if (doorwindows.get_Parameter(BuiltInParameter.CURTAIN_WALL_PANELS_WIDTH) != null)
-                                            {
-                                                curtainWallPanelsWidth = doorwindows.get_Parameter(BuiltInParameter.CURTAIN_WALL_PANELS_WIDTH).AsDouble();
-                                            }
-
-                                            panelArea += curtainWallPanelsHeight * curtainWallPanelsWidth;
-
-                                            XYZ lineDirection = (lineA as Line).Direction;
-                                            if (lineDirection.AngleTo(trueNorthBasisY) <= Math.PI / 8)
-                                            {
-                                                windowsAreaNorth += panelArea;
-                                            }
-                                            else if (lineDirection.AngleTo(trueNorthBasisY.Negate()) <= Math.PI / 8)
-                                            {
-                                                windowsAreaSouth += panelArea;
-                                            }
-                                            else if (lineDirection.AngleTo(trueNorthBasisX.Negate()) <= Math.PI / 8)
-                                            {
-                                                windowsAreaWest += panelArea;
-                                            }
-                                            else if (lineDirection.AngleTo(trueNorthBasisX) <= Math.PI / 8)
-                                            {
-                                                windowsAreaEast += panelArea;
-                                            }
-
-                                            else if (lineDirection.AngleTo((trueNorthBasisY + trueNorthBasisX.Negate()) / 2) < Math.PI / 8)
-                                            {
-                                                windowsAreaNorthwest += panelArea;
-                                            }
-                                            else if (lineDirection.AngleTo((trueNorthBasisY + trueNorthBasisX) / 2) < Math.PI / 8)
-                                            {
-                                                windowsAreaNortheast += panelArea;
-                                            }
-
-                                            else if (lineDirection.AngleTo((trueNorthBasisY.Negate() + trueNorthBasisX.Negate()) / 2) < Math.PI / 8)
-                                            {
-                                                windowsAreaSouthwest += panelArea;
-                                            }
-                                            else if (lineDirection.AngleTo((trueNorthBasisY.Negate() + trueNorthBasisX) / 2) < Math.PI / 8)
-                                            {
-                                                windowsAreaSoutheast += panelArea;
-                                            }
-                                        }
-                                    }
-                                }
-
-                                if (panel != null)
-                                {
-                                    if (panel.Symbol.get_Parameter(BuiltInParameter.CURTAIN_WALL_PANELS_CONSTRUCTION_TYPE) != null)
-                                    {
-                                        if (panel.Symbol.get_Parameter(BuiltInParameter.CURTAIN_WALL_PANELS_CONSTRUCTION_TYPE).AsString() != "Остекление")
-                                        {
-                                            continue;
-                                        }
-                                    }
-                                    bool flag = false;
-                                    BoundingBoxXYZ panelBoundingBox = panel.get_BoundingBox(null);
-                                    if (panelBoundingBox == null) continue;
-                                    XYZ panelCenter = (panelBoundingBox.Max + panelBoundingBox.Min) / 2;
-                                    Curve lineA = Line.CreateBound(panelCenter, panelCenter + (700 / 304.8) * panel.FacingOrientation.Normalize()) as Curve;
-                                    Curve lineB = Line.CreateBound(panelCenter, panelCenter + (700 / 304.8) * panel.FacingOrientation.Normalize().Negate()) as Curve;
-                                    Curve transformdlineA = lineA.CreateTransformed(transform) as Curve;
-                                    Curve transformdlineB = lineB.CreateTransformed(transform) as Curve;
-
-                                    SolidCurveIntersection intersectionB = spaceSolid.IntersectWithCurve(transformdlineB, intersectOptions);
-                                    if (intersectionB.SegmentCount > 0)
-                                    {
-                                        foreach (Space secondSpace in spaceList)
-                                        {
-                                            if (secondSpace.Id == space.Id) continue;
-
-                                            Solid secondSpaceSolid = null;
-
-                                            GeometryElement secondGeomRoomElement = secondSpace.get_Geometry(new Options());
-                                            foreach (GeometryObject secondGeomObj in secondGeomRoomElement)
-                                            {
-                                                secondSpaceSolid = secondGeomObj as Solid;
-                                                if (secondSpaceSolid != null) break;
-                                            }
-                                            if (secondSpaceSolid != null)
-                                            {
-                                                SolidCurveIntersection secondIntersection = secondSpaceSolid.IntersectWithCurve(transformdlineA, intersectOptions);
-                                                if (secondIntersection.SegmentCount > 0)
-                                                {
-                                                    flag = true;
-                                                }
-                                            }
-                                        }
-                                        if (flag == true) continue;
-
-                                        XYZ lineDirection = (lineA as Line).Direction;
-                                        panelArea = panel.get_Parameter(BuiltInParameter.HOST_AREA_COMPUTED).AsDouble();
-                                        if (lineDirection.AngleTo(trueNorthBasisY) <= Math.PI / 8)
-                                        {
-                                            windowsAreaNorth += panelArea;
-                                        }
-                                        else if (lineDirection.AngleTo(trueNorthBasisY.Negate()) <= Math.PI / 8)
-                                        {
-                                            windowsAreaSouth += panelArea;
-                                        }
-                                        else if (lineDirection.AngleTo(trueNorthBasisX.Negate()) <= Math.PI / 8)
-                                        {
-                                            windowsAreaWest += panelArea;
-                                        }
-                                        else if (lineDirection.AngleTo(trueNorthBasisX) <= Math.PI / 8)
-                                        {
-                                            windowsAreaEast += panelArea;
-                                        }
-
-                                        else if (lineDirection.AngleTo((trueNorthBasisY + trueNorthBasisX.Negate()) / 2) < Math.PI / 8)
-                                        {
-                                            windowsAreaNorthwest += panelArea;
-                                        }
-                                        else if (lineDirection.AngleTo((trueNorthBasisY + trueNorthBasisX) / 2) < Math.PI / 8)
-                                        {
-                                            windowsAreaNortheast += panelArea;
-                                        }
-
-                                        else if (lineDirection.AngleTo((trueNorthBasisY.Negate() + trueNorthBasisX.Negate()) / 2) < Math.PI / 8)
-                                        {
-                                            windowsAreaSouthwest += panelArea;
-                                        }
-                                        else if (lineDirection.AngleTo((trueNorthBasisY.Negate() + trueNorthBasisX) / 2) < Math.PI / 8)
-                                        {
-                                            windowsAreaSoutheast += panelArea;
-                                        }
-                                    }
+                                    double panelArea = panel.get_Parameter(BuiltInParameter.HOST_AREA_COMPUTED).AsDouble();
+                                    UpdateWindowAreas(ref windowsAreaNorth, ref windowsAreaSouth, ref windowsAreaWest, ref windowsAreaEast, ref windowsAreaNorthwest, ref windowsAreaNortheast, ref windowsAreaSouthwest, ref windowsAreaSoutheast, panelArea, transform.OfVector(panel.FacingOrientation), trueNorthBasisX, trueNorthBasisY);
                                 }
                             }
                         }
-
                     }
 
-                    space.get_Parameter(windowsAreaNorthGuid).Set(windowsAreaNorth);
-                    space.get_Parameter(windowsAreaSouthGuid).Set(windowsAreaSouth);
-
-                    space.get_Parameter(windowsAreaWestGuid).Set(windowsAreaWest);
-                    space.get_Parameter(windowsAreaEastGuid).Set(windowsAreaEast);
-
-                    space.get_Parameter(windowsAreaNorthwestGuid).Set(windowsAreaNorthwest);
-                    space.get_Parameter(windowsAreaNortheastGuid).Set(windowsAreaNortheast);
-
-                    space.get_Parameter(windowsAreaSouthwestGuid).Set(windowsAreaSouthwest);
-                    space.get_Parameter(windowsAreaSoutheastGuid).Set(windowsAreaSoutheast);
+                    // Установка значений параметров для каждого элемента
+                    element.get_Parameter(windowsAreaNorthGuid)?.Set(windowsAreaNorth);
+                    element.get_Parameter(windowsAreaSouthGuid)?.Set(windowsAreaSouth);
+                    element.get_Parameter(windowsAreaWestGuid)?.Set(windowsAreaWest);
+                    element.get_Parameter(windowsAreaEastGuid)?.Set(windowsAreaEast);
+                    element.get_Parameter(windowsAreaNorthwestGuid)?.Set(windowsAreaNorthwest);
+                    element.get_Parameter(windowsAreaNortheastGuid)?.Set(windowsAreaNortheast);
+                    element.get_Parameter(windowsAreaSouthwestGuid)?.Set(windowsAreaSouthwest);
+                    element.get_Parameter(windowsAreaSoutheastGuid)?.Set(windowsAreaSoutheast);
                 }
+
                 t.Commit();
             }
+
             return Result.Succeeded;
         }
+
+        // Дополнительные методы для получения Solid, вычисления площадей и проверки панели
+        private Solid GetSolidFromElement(Element element)
+        {
+            GeometryElement geomElement = element.get_Geometry(new Options());
+            foreach (GeometryObject geomObj in geomElement)
+            {
+                if (geomObj is Solid solid && solid.Volume > 0)
+                    return solid;
+            }
+            return null;
+        }
+
+        private void UpdateWindowAreas(
+            ref double north, ref double south, ref double west, ref double east,
+            ref double northwest, ref double northeast, ref double southwest, ref double southeast,
+            double area, XYZ orientation, XYZ trueNorthBasisX, XYZ trueNorthBasisY)
+        {
+            // Рассчитываем углы до каждой из сторон света
+            double angleToNorth = orientation.AngleTo(trueNorthBasisY);
+            double angleToSouth = orientation.AngleTo(trueNorthBasisY.Negate());
+            double angleToWest = orientation.AngleTo(trueNorthBasisX.Negate());
+            double angleToEast = orientation.AngleTo(trueNorthBasisX);
+
+            // Рассчитываем углы до промежуточных направлений
+            double angleToNorthwest = orientation.AngleTo(trueNorthBasisY + trueNorthBasisX.Negate());
+            double angleToNortheast = orientation.AngleTo(trueNorthBasisY + trueNorthBasisX);
+            double angleToSouthwest = orientation.AngleTo(trueNorthBasisY.Negate() + trueNorthBasisX.Negate());
+            double angleToSoutheast = orientation.AngleTo(trueNorthBasisY.Negate() + trueNorthBasisX);
+
+            // Условие для основного направления Север
+            if (angleToNorth <= Math.PI / 8)
+            {
+                north += area;
+            }
+            // Условие для основного направления Юг
+            else if (angleToSouth <= Math.PI / 8)
+            {
+                south += area;
+            }
+            // Условие для основного направления Запад
+            else if (angleToWest <= Math.PI / 8)
+            {
+                west += area;
+            }
+            // Условие для основного направления Восток
+            else if (angleToEast <= Math.PI / 8)
+            {
+                east += area;
+            }
+            // Условие для промежуточного направления Северо-Запад
+            else if (angleToNorthwest <= Math.PI / 8)
+            {
+                northwest += area;
+            }
+            // Условие для промежуточного направления Северо-Восток
+            else if (angleToNortheast <= Math.PI / 8)
+            {
+                northeast += area;
+            }
+            // Условие для промежуточного направления Юго-Запад
+            else if (angleToSouthwest <= Math.PI / 8)
+            {
+                southwest += area;
+            }
+            // Условие для промежуточного направления Юго-Восток
+            else if (angleToSoutheast <= Math.PI / 8)
+            {
+                southeast += area;
+            }
+        }
+
+        private bool IsPanelGlazing(Panel panel)
+        {
+            string constructionType = panel.Symbol.get_Parameter(BuiltInParameter.CURTAIN_WALL_PANELS_CONSTRUCTION_TYPE)?.AsString();
+            return constructionType == "Остекление";
+        }
+
         private static List<Space> GetSpacesFromCurrentSelection(Document doc, Selection sel)
         {
             ICollection<ElementId> selectedIds = sel.GetElementIds();
@@ -541,7 +506,7 @@ namespace CardinalDirectionGlazing
             }
             return tempSpacessList;
         }
-        private static void GetPluginStartInfo()
+        private static async Task GetPluginStartInfo()
         {
             // Получаем сборку, в которой выполняется текущий код
             Assembly thisAssembly = Assembly.GetExecutingAssembly();
@@ -554,12 +519,21 @@ namespace CardinalDirectionGlazing
 
             Assembly assembly = Assembly.LoadFrom(dllPath);
             Type type = assembly.GetType("PluginInfoCollector.InfoCollector");
-            var constructor = type.GetConstructor(new Type[] { typeof(string), typeof(string) });
 
             if (type != null)
             {
                 // Создание экземпляра класса
-                object instance = Activator.CreateInstance(type, new object[] { assemblyName, assemblyNameRus });
+                object instance = Activator.CreateInstance(type);
+
+                // Получение метода CollectPluginUsageAsync
+                var method = type.GetMethod("CollectPluginUsageAsync");
+
+                if (method != null)
+                {
+                    // Вызов асинхронного метода через reflection
+                    Task task = (Task)method.Invoke(instance, new object[] { assemblyName, assemblyNameRus });
+                    await task;  // Ожидание завершения асинхронного метода
+                }
             }
         }
     }

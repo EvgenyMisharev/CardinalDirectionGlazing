@@ -11,6 +11,7 @@ namespace CardinalDirectionGlazing
     {
         public RevitLinkInstance SelectedRevitLinkInstance;
         public string SpacesForProcessingButtonName;
+        public string SpacesOrRoomsForProcessingButtonName;
 
         CardinalDirectionGlazingSettings CardinalDirectionGlazingSettingsItem = null;
 
@@ -21,6 +22,8 @@ namespace CardinalDirectionGlazing
 
             listBox_RevitLinkInstance.ItemsSource = revitLinkInstanceList;
             listBox_RevitLinkInstance.DisplayMemberPath = "Name";
+
+            // Устанавливаем сохранённые настройки или значения по умолчанию
             if (CardinalDirectionGlazingSettingsItem != null)
             {
                 if (revitLinkInstanceList.FirstOrDefault(li => li.Name == CardinalDirectionGlazingSettingsItem.SelectedRevitLinkInstanceName) != null)
@@ -40,11 +43,21 @@ namespace CardinalDirectionGlazing
                 {
                     radioButton_All.IsChecked = true;
                 }
+
+                if (CardinalDirectionGlazingSettingsItem.SpacesOrRoomsForProcessingButtonName == "radioButton_Spaces")
+                {
+                    radioButton_Spaces.IsChecked = true;
+                }
+                else
+                {
+                    radioButton_Rooms.IsChecked = true;
+                }
             }
             else
             {
                 listBox_RevitLinkInstance.SelectedItem = listBox_RevitLinkInstance.Items[0];
                 radioButton_All.IsChecked = true;
+                radioButton_Spaces.IsChecked = true;
             }
         }
 
@@ -54,6 +67,7 @@ namespace CardinalDirectionGlazing
             this.DialogResult = true;
             this.Close();
         }
+
         private void Window_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter || e.Key == Key.Space)
@@ -69,11 +83,13 @@ namespace CardinalDirectionGlazing
                 this.Close();
             }
         }
+
         private void btn_Cancel_Click(object sender, RoutedEventArgs e)
         {
             this.DialogResult = false;
             this.Close();
         }
+
         private void SaveSettings()
         {
             CardinalDirectionGlazingSettingsItem = new CardinalDirectionGlazingSettings();
@@ -89,6 +105,12 @@ namespace CardinalDirectionGlazing
                 .FirstOrDefault(rb => rb.IsChecked.Value == true)
                 .Name;
             CardinalDirectionGlazingSettingsItem.SpacesForProcessingButtonName = SpacesForProcessingButtonName;
+
+            SpacesOrRoomsForProcessingButtonName = (this.groupBox_SpacesOrRoomsForProcessing.Content as System.Windows.Controls.Grid)
+                .Children.OfType<RadioButton>()
+                .FirstOrDefault(rb => rb.IsChecked.Value == true)
+                .Name;
+            CardinalDirectionGlazingSettingsItem.SpacesOrRoomsForProcessingButtonName = SpacesOrRoomsForProcessingButtonName;
 
             CardinalDirectionGlazingSettingsItem.SaveSettings();
         }
