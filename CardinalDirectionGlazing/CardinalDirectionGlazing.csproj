@@ -208,6 +208,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Include="RoomSelectionFilter.cs" />
     <Compile Include="SpaceSelectionFilter.cs" />
   </ItemGroup>
   <ItemGroup>

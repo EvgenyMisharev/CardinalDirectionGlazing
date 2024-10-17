@@ -1,4 +1,5 @@
 ﻿using Autodesk.Revit.DB;
+using Autodesk.Revit.DB.Architecture;
 using Autodesk.Revit.DB.Mechanical;
 using Autodesk.Revit.UI;
 using Autodesk.Revit.UI.Selection;
@@ -78,22 +79,73 @@ namespace CardinalDirectionGlazing
             }
 
             // Выбираем обработку: пространства или помещения
-            List<Element> elementsList;
+            List<Element> elementsList = new List<Element>();
+            // Проверка, обрабатываются ли пространства или помещения
             if (cardinalDirectionGlazingWPF.SpacesOrRoomsForProcessingButtonName == "radioButton_Spaces")
             {
-                // Обрабатываем пространства
-                elementsList = new FilteredElementCollector(doc)
-                    .OfCategory(BuiltInCategory.OST_MEPSpaces)
-                    .WhereElementIsNotElementType()
-                    .ToList();
+                if (cardinalDirectionGlazingWPF.SpacesForProcessingButtonName == "radioButton_Selected")
+                {
+                    // Получаем выбранные пространства
+                    List<Space> selectedSpaces = GetSpacesFromCurrentSelection(doc, sel);
+
+                    // Если ничего не выбрано, даем пользователю возможность выбрать пространства
+                    if (selectedSpaces.Count == 0)
+                    {
+                        try
+                        {
+                            IList<Reference> selectedReferences = sel.PickObjects(ObjectType.Element, new SpaceSelectionFilter(), "Выберите пространства");
+                            selectedSpaces = selectedReferences.Select(r => doc.GetElement(r.ElementId) as Space).ToList();
+                        }
+                        catch (Autodesk.Revit.Exceptions.OperationCanceledException)
+                        {
+                            return Result.Cancelled;
+                        }
+                    }
+
+                    // Преобразуем пространства в список элементов для дальнейшей обработки
+                    elementsList = selectedSpaces.Cast<Element>().ToList();
+                }
+                else
+                {
+                    // Обрабатываем все пространства
+                    elementsList = new FilteredElementCollector(doc)
+                        .OfCategory(BuiltInCategory.OST_MEPSpaces)
+                        .WhereElementIsNotElementType()
+                        .ToList();
+                }
             }
-            else
+            else if (cardinalDirectionGlazingWPF.SpacesOrRoomsForProcessingButtonName == "radioButton_Rooms")
             {
-                // Обрабатываем помещения
-                elementsList = new FilteredElementCollector(doc)
-                    .OfCategory(BuiltInCategory.OST_Rooms)
-                    .WhereElementIsNotElementType()
-                    .ToList();
+                if (cardinalDirectionGlazingWPF.SpacesForProcessingButtonName == "radioButton_Selected")
+                {
+                    // Получаем выбранные помещения
+                    List<Room> selectedRooms = GetRoomsFromCurrentSelection(doc, sel);
+
+                    // Если ничего не выбрано, даем пользователю возможность выбрать помещения
+                    if (selectedRooms.Count == 0)
+                    {
+                        try
+                        {
+                            IList<Reference> selectedReferences = sel.PickObjects(ObjectType.Element, new RoomSelectionFilter(), "Выберите помещения");
+                            selectedRooms = selectedReferences.Select(r => doc.GetElement(r.ElementId) as Room).ToList();
+                        }
+                        catch (Autodesk.Revit.Exceptions.OperationCanceledException)
+                        {
+                            return Result.Cancelled;
+                        }
+                    }
+
+                    // Преобразуем помещения в список элементов для дальнейшей обработки
+                    elementsList = selectedRooms.Cast<Element>().ToList();
+                }
+                else
+                {
+                    // Обрабатываем все помещения
+                    elementsList = new FilteredElementCollector(doc)
+                        .OfCategory(BuiltInCategory.OST_Rooms)
+                        .WhereElementIsNotElementType()
+                        .ToList();
+                }
             }
 
             if (elementsList.Count == 0)
@@ -105,10 +157,54 @@ namespace CardinalDirectionGlazing
             // Проверка наличия параметров в первом элементе
             if (elementsList.Count != 0)
             {
-                Parameter windowsAreaNorthParameter = elementsList.First().get_Parameter(windowsAreaNorthGuid);
-                if (windowsAreaNorthParameter == null)
+                Element firstElement = elementsList.First();
+
+                // Проверка каждого параметра по отдельности и вывод сообщения, если параметр отсутствует
+                if (firstElement.get_Parameter(windowsAreaNorthGuid) == null)
                 {
                     TaskDialog.Show("Revit", "Параметр \"ПлощадьОкон_С\" не найден! Добавьте параметр.");
+                    return Result.Cancelled;
+                }
+
+                if (firstElement.get_Parameter(windowsAreaSouthGuid) == null)
+                {
+                    TaskDialog.Show("Revit", "Параметр \"ПлощадьОкон_Ю\" не найден! Добавьте параметр.");
+                    return Result.Cancelled;
+                }
+
+                if (firstElement.get_Parameter(windowsAreaWestGuid) == null)
+                {
+                    TaskDialog.Show("Revit", "Параметр \"ПлощадьОкон_З\" не найден! Добавьте параметр.");
+                    return Result.Cancelled;
+                }
+
+                if (firstElement.get_Parameter(windowsAreaEastGuid) == null)
+                {
+                    TaskDialog.Show("Revit", "Параметр \"ПлощадьОкон_В\" не найден! Добавьте параметр.");
+                    return Result.Cancelled;
+                }
+
+                if (firstElement.get_Parameter(windowsAreaNorthwestGuid) == null)
+                {
+                    TaskDialog.Show("Revit", "Параметр \"ПлощадьОкон_СЗ\" не найден! Добавьте параметр.");
+                    return Result.Cancelled;
+                }
+
+                if (firstElement.get_Parameter(windowsAreaNortheastGuid) == null)
+                {
+                    TaskDialog.Show("Revit", "Параметр \"ПлощадьОкон_СВ\" не найден! Добавьте параметр.");
+                    return Result.Cancelled;
+                }
+
+                if (firstElement.get_Parameter(windowsAreaSouthwestGuid) == null)
+                {
+                    TaskDialog.Show("Revit", "Параметр \"ПлощадьОкон_ЮЗ\" не найден! Добавьте параметр.");
+                    return Result.Cancelled;
+                }
+
+                if (firstElement.get_Parameter(windowsAreaSoutheastGuid) == null)
+                {
+                    TaskDialog.Show("Revit", "Параметр \"ПлощадьОкон_ЮВ\" не найден! Добавьте параметр.");
                     return Result.Cancelled;
                 }
             }
@@ -506,6 +602,23 @@ namespace CardinalDirectionGlazing
             }
             return tempSpacessList;
         }
+
+        private static List<Room> GetRoomsFromCurrentSelection(Document doc, Selection sel)
+        {
+            ICollection<ElementId> selectedIds = sel.GetElementIds();
+            List<Room> tempRoomsList = new List<Room>();
+            foreach (ElementId roomId in selectedIds)
+            {
+                if (doc.GetElement(roomId) is Room
+                    && null != doc.GetElement(roomId).Category
+                    && doc.GetElement(roomId).Category.Id.IntegerValue.Equals((int)BuiltInCategory.OST_Rooms))
+                {
+                    tempRoomsList.Add(doc.GetElement(roomId) as Room);
+                }
+            }
+            return tempRoomsList;
+        }
+
         private static async Task GetPluginStartInfo()
         {
             // Получаем сборку, в которой выполняется текущий код
